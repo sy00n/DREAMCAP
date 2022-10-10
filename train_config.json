@@ -1,0 +1,13 @@
+{
+    "config": "config path",
+    "work-dir": "output/model",
+    "resume-from": null,
+    "validate": true,
+    "gpus": 1,
+    "gpu-ids": null,
+    "seed": 0,
+    "deterministic": true,
+    "cfg-options": {},
+    "launcher": "none",
+    "local_rank": 0
+}

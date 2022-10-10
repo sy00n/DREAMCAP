@@ -1,0 +1,17 @@
+{
+    "config": "config path",
+    "checkpoint": "checkpoint path",
+    "videos_per_gpu": 2,
+    "workers_per_gpu": 2,
+    "out": "results/model/res.pkl",
+    "fuse-conv-bn": true,
+    "eval": ["top_k_accuracy", "mean_class_accuracy"],
+    "gpu-collect": true,
+    "tmpdir": null,
+    "options": {},
+    "eval-options": {},
+    "cfg-options": {},
+    "average-clips": null,
+    "launcher": "none",
+    "local_rank": 0
+}

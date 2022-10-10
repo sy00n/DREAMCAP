@@ -1,0 +1,23 @@
+{
+    "get_threshold":{
+        "config": "config_path",
+        "checkpoint": "checkpoint_path",
+        "uncertainty": "EDL",
+        "train_data": "the split file of in-distribution training data",
+        "forward_pass": 10,
+        "batch_size": 8,
+        "device": "cuda",
+        "result_prefix": "results/model"
+    },
+    "compare_openness":{
+        "base_model": "i3d",
+        "baselines": ["I3D_Dropout_BALD", "I3D_BNN_BALD", "I3D_EDLlog_EDL", "I3D_EDLlogAvUC_EDL"],
+        "thresholds": [0.000423, 0.000024, 0.495783, 0.495783],
+        "styles": ["-b", "-k", "-r", "-g", "-m"],
+        "ind_ncls": "int-the number of classes in known dataset",
+        "ood_ncls": "int-the number of classes in unknown dataset",
+        "ood_data": "HMDB",
+        "num_rand": 10,
+        "result_png": "F1_openness_compare_HMDB.png"
+    }
+}

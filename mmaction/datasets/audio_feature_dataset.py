@@ -1,7 +1,5 @@
 import os.path as osp
-
 import torch
-
 from .base import BaseDataset
 from .registry import DATASETS
 
@@ -11,16 +9,13 @@ class AudioFeatureDataset(BaseDataset):
     """Audio feature dataset for video recognition. Reads the features
     extracted off-line. Annotation file can be that of the rawframe dataset,
     or:
-
     .. code-block:: txt
-
         some/directory-1.npy 163 1
         some/directory-2.npy 122 1
         some/directory-3.npy 258 2
         some/directory-4.npy 234 2
         some/directory-5.npy 295 3
         some/directory-6.npy 121 3
-
     Args:
         ann_file (str): Path to the annotation file.
         pipeline (list[dict | callable]): A sequence of data transforms.

@@ -104,24 +104,49 @@ def main():
 
     model = build_model(
         cfg.model, train_cfg=cfg.train_cfg, test_cfg=cfg.test_cfg)
+    
+    if cfg.dual_modality:
+        if cfg.omnisource:
+            # If omnisource flag is set, cfg.data.train should be a list
+            assert type(cfg.data.train) is list
+            rgb_datasets = [build_dataset(dataset) for dataset in cfg.data.rgb.train]
+            ske_datasets = [build_dataset(dataset) for dataset in cfg.data.ske.train]
+        else:
+            rgb_datasets = [build_dataset(cfg.data.rgb.train)]
+            ske_datasets = [build_dataset(cfg.data.ske.train)]
 
-    if cfg.omnisource:
-        # If omnisource flag is set, cfg.data.train should be a list
-        assert type(cfg.data.train) is list
-        datasets = [build_dataset(dataset) for dataset in cfg.data.train]
+        if len(cfg.workflow) == 2:
+            # For simplicity, omnisource is not compatiable with val workflow,
+            # we recommend you to use `--validate`
+            assert not cfg.omnisource
+            if args.validate:
+                warnings.warn('val workflow is duplicated with `--validate`, '
+                            'it is recommended to use `--validate`. see '
+                            'https://github.com/open-mmlab/mmaction2/pull/123')
+            rgb_val_dataset = copy.deepcopy(cfg.data.rgb.val)
+            ske_val_dataset = copy.deepcopy(cfg.data.ske.val)
+            rgb_datasets.append(build_dataset(rgb_val_dataset))
+            ske_datasets.append(build_dataset(ske_val_dataset))
+        
+        datasets = [rgb_daetasets, ske_datasets]
     else:
-        datasets = [build_dataset(cfg.data.train)]
+        if cfg.omnisource:
+            # If omnisource flag is set, cfg.data.train should be a list
+            assert type(cfg.data.train) is list
+            datasets = [build_dataset(dataset) for dataset in cfg.data.train]
+        else:
+            datasets = [build_dataset(cfg.data.train)]
 
-    if len(cfg.workflow) == 2:
-        # For simplicity, omnisource is not compatiable with val workflow,
-        # we recommend you to use `--validate`
-        assert not cfg.omnisource
-        if args.validate:
-            warnings.warn('val workflow is duplicated with `--validate`, '
-                          'it is recommended to use `--validate`. see '
-                          'https://github.com/open-mmlab/mmaction2/pull/123')
-        val_dataset = copy.deepcopy(cfg.data.val)
-        datasets.append(build_dataset(val_dataset))
+        if len(cfg.workflow) == 2:
+            # For simplicity, omnisource is not compatiable with val workflow,
+            # we recommend you to use `--validate`
+            assert not cfg.omnisource
+            if args.validate:
+                warnings.warn('val workflow is duplicated with `--validate`, '
+                            'it is recommended to use `--validate`. see '
+                            'https://github.com/open-mmlab/mmaction2/pull/123')
+            val_dataset = copy.deepcopy(cfg.data.val)
+            datasets.append(build_dataset(val_dataset))
     if cfg.checkpoint_config is not None:
         # save mmaction version, config file content and class names in
         # checkpoints as meta data

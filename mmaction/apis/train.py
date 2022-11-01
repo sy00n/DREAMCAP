@@ -35,7 +35,12 @@ def train_model(model,
     logger = get_root_logger(log_level=cfg.log_level)
 
     # prepare data loaders
-    dataset = dataset if isinstance(dataset, (list, tuple)) else [dataset]
+    
+    if cfg.dual_modality:
+        rgb_dataset = dataset[0] if isinstance(dataset[0], (list, tuple)) else [dataset[0]]
+        ske_dataset = dataset[1] if isinstance(dataset[1], (list, tuple)) else [dataset[1]]
+    else:
+        dataset = dataset if isinstance(dataset, (list, tuple)) else [dataset]
 
     dataloader_setting = dict(
         videos_per_gpu=cfg.data.get('videos_per_gpu', 1),
@@ -47,27 +52,50 @@ def train_model(model,
     dataloader_setting = dict(dataloader_setting,
                               **cfg.data.get('train_dataloader', {}))
 
-    if cfg.omnisource:
-        # The option can override videos_per_gpu
-        train_ratio = cfg.data.get('train_ratio', [1] * len(dataset))
-        omni_videos_per_gpu = cfg.data.get('omni_videos_per_gpu', None)
-        if omni_videos_per_gpu is None:
-            dataloader_settings = [dataloader_setting] * len(dataset)
-        else:
-            dataloader_settings = []
-            for videos_per_gpu in omni_videos_per_gpu:
-                this_setting = cp.deepcopy(dataloader_setting)
-                this_setting['videos_per_gpu'] = videos_per_gpu
-                dataloader_settings.append(this_setting)
-        data_loaders = [
-            build_dataloader(ds, **setting)
-            for ds, setting in zip(dataset, dataloader_settings)
-        ]
+    if cfg.dual_modality:
+        if cfg.omnisource:
+            # The option can override videos_per_gpu
+            train_ratio = cfg.data.get('train_ratio', [1] * len(dataset))
+            omni_videos_per_gpu = cfg.data.get('omni_videos_per_gpu', None)
+            if omni_videos_per_gpu is None:
+                dataloader_settings = [dataloader_setting] * len(dataset)
+            else:
+                dataloader_settings = []
+                for videos_per_gpu in omni_videos_per_gpu:
+                    this_setting = cp.deepcopy(dataloader_setting)
+                    this_setting['videos_per_gpu'] = videos_per_gpu
+                    dataloader_settings.append(this_setting)
+            data_loaders = [
+                build_dataloader(ds, **setting)
+                for ds, setting in zip(dataset, dataloader_settings)
+            ]
 
+        else:
+            data_loaders = [
+                build_dataloader(ds, **dataloader_setting) for ds in dataset
+            ]
     else:
-        data_loaders = [
-            build_dataloader(ds, **dataloader_setting) for ds in dataset
-        ]
+        if cfg.omnisource:
+            # The option can override videos_per_gpu
+            train_ratio = cfg.data.get('train_ratio', [1] * len(dataset))
+            omni_videos_per_gpu = cfg.data.get('omni_videos_per_gpu', None)
+            if omni_videos_per_gpu is None:
+                dataloader_settings = [dataloader_setting] * len(dataset)
+            else:
+                dataloader_settings = []
+                for videos_per_gpu in omni_videos_per_gpu:
+                    this_setting = cp.deepcopy(dataloader_setting)
+                    this_setting['videos_per_gpu'] = videos_per_gpu
+                    dataloader_settings.append(this_setting)
+            data_loaders = [
+                build_dataloader(ds, **setting)
+                for ds, setting in zip(dataset, dataloader_settings)
+            ]
+
+        else:
+            data_loaders = [
+                build_dataloader(ds, **dataloader_setting) for ds in dataset
+            ]
 
     # put model on gpus
     if distributed:
@@ -123,21 +151,39 @@ def train_model(model,
             runner.register_hook(DistSamplerSeedHook())
 
     if validate:
-        eval_cfg = cfg.get('evaluation', {})
-        val_dataset = build_dataset(cfg.data.val, dict(test_mode=True))
-        dataloader_setting = dict(
-            videos_per_gpu=cfg.data.get('videos_per_gpu', 1),
-            workers_per_gpu=cfg.data.get('workers_per_gpu', 1),
-            # cfg.gpus will be ignored if distributed
-            num_gpus=len(cfg.gpu_ids),
-            dist=distributed,
-            pin_memory=cfg.data.get('pin_memory', True),  # by default, pin_memory=True
-            shuffle=False)
-        dataloader_setting = dict(dataloader_setting,
-                                  **cfg.data.get('val_dataloader', {}))
-        val_dataloader = build_dataloader(val_dataset, **dataloader_setting)
-        eval_hook = DistEpochEvalHook if distributed else EpochEvalHook
-        runner.register_hook(eval_hook(val_dataloader, **eval_cfg))
+        if cfg.dual_modality:
+            eval_cfg = cfg.get('evaluation', {})
+            rgb_val_dataset = build_dataset(cfg.data.rgb.val, dict(test_mode=True))
+            ske_val_dataset = build_dataset(cfg.data.ske.val, dict(test_mode=True))
+            dataloader_setting = dict(
+                videos_per_gpu=cfg.data.get('videos_per_gpu', 1),
+                workers_per_gpu=cfg.data.get('workers_per_gpu', 1),
+                # cfg.gpus will be ignored if distributed
+                num_gpus=len(cfg.gpu_ids),
+                dist=distributed,
+                pin_memory=cfg.data.get('pin_memory', True),  # by default, pin_memory=True
+                shuffle=False)
+            dataloader_setting = dict(dataloader_setting,
+                                    **cfg.data.get('val_dataloader', {}))
+            val_dataloader = build_dataloader(val_dataset, **dataloader_setting)
+            eval_hook = DistEpochEvalHook if distributed else EpochEvalHook
+            runner.register_hook(eval_hook(val_dataloader, **eval_cfg))
+        else:
+            eval_cfg = cfg.get('evaluation', {})
+            val_dataset = build_dataset(cfg.data.val, dict(test_mode=True))
+            dataloader_setting = dict(
+                videos_per_gpu=cfg.data.get('videos_per_gpu', 1),
+                workers_per_gpu=cfg.data.get('workers_per_gpu', 1),
+                # cfg.gpus will be ignored if distributed
+                num_gpus=len(cfg.gpu_ids),
+                dist=distributed,
+                pin_memory=cfg.data.get('pin_memory', True),  # by default, pin_memory=True
+                shuffle=False)
+            dataloader_setting = dict(dataloader_setting,
+                                    **cfg.data.get('val_dataloader', {}))
+            val_dataloader = build_dataloader(val_dataset, **dataloader_setting)
+            eval_hook = DistEpochEvalHook if distributed else EpochEvalHook
+            runner.register_hook(eval_hook(val_dataloader, **eval_cfg))
 
     if cfg.resume_from:
         runner.resume(cfg.resume_from)

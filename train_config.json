@@ -1,5 +1,5 @@
 {
-    "config": "/Users/kwon-yujin/Desktop/DREAMCAP/configs/DREAM/dream.py",
+    "config": "configs/DREAM/dream.py",
     "work_dir": "output/model",
     "resume_from": null,
     "validate": true,

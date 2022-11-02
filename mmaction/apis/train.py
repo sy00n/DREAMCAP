@@ -7,9 +7,56 @@ from mmcv.runner import (DistSamplerSeedHook, EpochBasedRunner, OptimizerHook,
 from mmcv.runner.hooks import Fp16OptimizerHook
 
 from ..core import (DistEpochEvalHook, EpochEvalHook,
-                    OmniSourceDistSamplerSeedHook, OmniSourceRunner, AnnealingRunner)
+                    OmniSourceDistSamplerSeedHook, OmniSourceRunner, AnnealingRunner,
+                    DualOmniSourceRunner, DualAnnealingRunner, DualEpochBasedRunner)
 from ..datasets import build_dataloader, build_dataset
 from ..utils import get_root_logger
+
+class MMDataParallel_(MMDataParallel):
+    def train_step(self, *inputs, **kwargs):
+        if not self.device_ids:
+            # We add the following line thus the module could gather and
+            # convert data containers as those in GPU inference
+            inputs, kwargs = self.scatter(inputs, kwargs, [-1])
+            return self.module.train_step(*inputs[0], **kwargs[0])
+
+        assert len(self.device_ids) == 1, \
+            ('MMDataParallel only supports single GPU training, if you need to'
+             ' train with multiple GPUs, please use MMDistributedDataParallel'
+             'instead.')
+
+        for t in chain(self.module.parameters(), self.module.buffers()):
+            if t.device != self.src_device_obj:
+                raise RuntimeError(
+                    'module must have its parameters and buffers '
+                    f'on device {self.src_device_obj} (device_ids[0]) but '
+                    f'found one of them on device: {t.device}')
+
+        inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
+        
+        return self.module.train_step(*inputs[0], **kwargs[0])
+    
+    def val_step(self, *inputs, **kwargs):
+        if not self.device_ids:
+            # We add the following line thus the module could gather and
+            # convert data containers as those in GPU inference
+            inputs, kwargs = self.scatter(inputs, kwargs, [-1])
+            return self.module.val_step(*inputs, **kwargs[0])
+
+        assert len(self.device_ids) == 1, \
+            ('MMDataParallel only supports single GPU training, if you need to'
+             ' train with multiple GPUs, please use MMDistributedDataParallel'
+             ' instead.')
+
+        for t in chain(self.module.parameters(), self.module.buffers()):
+            if t.device != self.src_device_obj:
+                raise RuntimeError(
+                    'module must have its parameters and buffers '
+                    f'on device {self.src_device_obj} (device_ids[0]) but '
+                    f'found one of them on device: {t.device}')
+
+        inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
+        return self.module.val_step(*inputs[0], **kwargs[0])
 
 
 def train_model(model,
@@ -75,7 +122,7 @@ def train_model(model,
                 build_dataloader(ds, **setting)
                 for ds, setting in zip(ske_dataset, dataloader_settings)
             ]
-            data_loaders = list(zip(rgb_data_loaders, ske_data_loaders))
+            data_loaders = [list(zip(rgb_data_loaders, ske_data_loaders))]
         else:
             rgb_data_loaders = [
                 build_dataloader(ds, **dataloader_setting) for ds in rgb_dataset
@@ -83,7 +130,7 @@ def train_model(model,
             ske_data_loaders = [
                 build_dataloader(ds, **dataloader_setting) for ds in ske_dataset
             ]
-            data_loaders = list(zip(rgb_data_loaders, ske_data_loaders))
+            data_loaders = [list(zip(rgb_data_loaders[0], ske_data_loaders[0]))]
     else:
         if cfg.omnisource:
             # The option can override videos_per_gpu
@@ -118,19 +165,27 @@ def train_model(model,
             broadcast_buffers=False,
             find_unused_parameters=find_unused_parameters)
     else:
-        model = MMDataParallel(
+        model = MMDataParallel_(
             model.to(device))
 
     # build runner
     optimizer = build_optimizer(model, cfg.optimizer)
 
     # Runner = OmniSourceRunner if cfg.omnisource else EpochBasedRunner
-    if cfg.omnisource:
-        Runner = OmniSourceRunner
-    elif cfg.get('annealing_runner', False):
-        Runner = AnnealingRunner  # add annealing runner support
+    if cfg.dual_modality:
+        if cfg.omnisource:
+            Runner = DualOmniSourceRunner
+        elif cfg.get('annealing_runner', False):
+            Runner = DualAnnealingRunner  # add annealing runner support
+        else:
+            Runner = DualEpochBasedRunner
     else:
-        Runner = EpochBasedRunner
+        if cfg.omnisource:
+            Runner = OmniSourceRunner
+        elif cfg.get('annealing_runner', False):
+            Runner = AnnealingRunner  # add annealing runner support
+        else:
+            Runner = EpochBasedRunner
     runner = Runner(
         model,
         optimizer=optimizer,
@@ -177,7 +232,7 @@ def train_model(model,
                                     **cfg.data.get('val_dataloader', {}))
             rgb_val_dataloader = build_dataloader(rgb_val_dataset, **dataloader_setting)
             ske_val_dataloader = build_dataloader(ske_val_dataset, **dataloader_setting)
-            val_dataloader = list(zip(rgb_val_dataloader, ske_val_dataloader))
+            val_dataloader = zip(rgb_val_dataloader, ske_val_dataloader)
             eval_hook = DistEpochEvalHook if distributed else EpochEvalHook
             #runner.register_hook(eval_hook(val_dataloader, **eval_cfg))
         else:

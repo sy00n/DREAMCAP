@@ -65,28 +65,15 @@ ann_file = {
 left_kp = [1, 3, 5, 7, 9, 11, 13, 15]
 right_kp = [2, 4, 6, 8, 10, 12, 14, 16]
 train_pipeline = {
-    #"rgb":[
-        #dict(type='SampleFrames', clip_len=32, frame_interval=2, num_clips=1),
-        #dict(type='RawFrameDecode'),
-        #dict(type='Resize', scale=(-1, 256)),
-        #dict(type='RandomResizedCrop'),
-        #dict(type='Resize', scale=(224, 224), keep_ratio=False),
-        #dict(type='Flip', flip_ratio=0.5),
-        #dict(type='Normalize', **img_norm_cfg),
-        #dict(type='FormatShape', input_format='NCTHW'),
-        #dict(type='Collect', keys=['imgs', 'label'], meta_keys=[]),
-        #dict(type='ToTensor', keys=['imgs', 'label'])
-    #],
     "rgb":[
-        dict(type='UniformSampleFrames', clip_len=48),
-        dict(type='PoseDecode'),
-        dict(type='PoseCompact', hw_ratio=1., allow_imgpad=True),
-        dict(type='Resize', scale=(-1, 64)),
-        dict(type='RandomResizedCrop', area_range=(0.56, 1.0)),
-        dict(type='Resize', scale=(56, 56), keep_ratio=False),
-        dict(type='Flip', flip_ratio=0.5, left_kp=left_kp, right_kp=right_kp),
-        dict(type='GeneratePoseTarget', with_kp=True, with_limb=False),
-        dict(type='FormatShape', input_format='NCTHW_Heatmap'),
+        dict(type='SampleFrames', clip_len=32, frame_interval=2, num_clips=1),
+        dict(type='RawFrameDecode'),
+        dict(type='Resize', scale=(-1, 256)),
+        dict(type='RandomResizedCrop'),
+        dict(type='Resize', scale=(224, 224), keep_ratio=False),
+        dict(type='Flip', flip_ratio=0.5),
+        dict(type='Normalize', **img_norm_cfg),
+        dict(type='FormatShape', input_format='NCTHW'),
         dict(type='Collect', keys=['imgs', 'label'], meta_keys=[]),
         dict(type='ToTensor', keys=['imgs', 'label'])
     ],
@@ -105,29 +92,19 @@ train_pipeline = {
     ]
 }
 val_pipeline = {
-    #'rgb':[
-    #    dict(
-    #        type='SampleFrames',
-    #        clip_len=32,
-    #        frame_interval=2,
-    #        num_clips=1,
-    #        test_mode=True),
-    #    dict(type='RawFrameDecode'),
-    #    dict(type='Resize', scale=(-1, 256)),
-    #    dict(type='CenterCrop', crop_size=224),
-    #    dict(type='Flip', flip_ratio=0),
-    #    dict(type='Normalize', **img_norm_cfg),
-    #    dict(type='FormatShape', input_format='NCTHW'),
-    #    dict(type='Collect', keys=['imgs', 'label'], meta_keys=[]),
-    #    dict(type='ToTensor', keys=['imgs'])
-    #],
     'rgb':[
-        dict(type='UniformSampleFrames', clip_len=48, num_clips=1, test_mode=True),
-        dict(type='PoseDecode'),
-        dict(type='PoseCompact', hw_ratio=1., allow_imgpad=True),
-        dict(type='Resize', scale=(64, 64), keep_ratio=False),
-        dict(type='GeneratePoseTarget', with_kp=True, with_limb=False),
-        dict(type='FormatShape', input_format='NCTHW_Heatmap'),
+        dict(
+            type='SampleFrames',
+            clip_len=32,
+            frame_interval=2,
+            num_clips=1,
+            test_mode=True),
+        dict(type='RawFrameDecode'),
+        dict(type='Resize', scale=(-1, 256)),
+        dict(type='CenterCrop', crop_size=224),
+        dict(type='Flip', flip_ratio=0),
+        dict(type='Normalize', **img_norm_cfg),
+        dict(type='FormatShape', input_format='NCTHW'),
         dict(type='Collect', keys=['imgs', 'label'], meta_keys=[]),
         dict(type='ToTensor', keys=['imgs'])
     ],
@@ -143,29 +120,19 @@ val_pipeline = {
     ]
 }
 test_pipeline = {
-    #'rgb':[
-    #    dict(
-    #        type='SampleFrames',
-    #        clip_len=32,
-    #        frame_interval=2,
-    #        num_clips=10,
-    #        test_mode=True),
-    #    dict(type='RawFrameDecode'),
-    #    dict(type='Resize', scale=(-1, 256)),
-    #    dict(type='ThreeCrop', crop_size=256),
-    #    dict(type='Flip', flip_ratio=0),
-    #    dict(type='Normalize', **img_norm_cfg),
-    #    dict(type='FormatShape', input_format='NCTHW'),
-    #    dict(type='Collect', keys=['imgs', 'label'], meta_keys=[]),
-    #    dict(type='ToTensor', keys=['imgs'])
-    #],
     'rgb':[
-        dict(type='UniformSampleFrames', clip_len=48, num_clips=10, test_mode=True),
-        dict(type='PoseDecode'),
-        dict(type='PoseCompact', hw_ratio=1., allow_imgpad=True),
-        dict(type='Resize', scale=(64, 64), keep_ratio=False),
-        dict(type='GeneratePoseTarget', with_kp=True, with_limb=False, double=True, left_kp=left_kp, right_kp=right_kp),
-        dict(type='FormatShape', input_format='NCTHW_Heatmap'),
+        dict(
+            type='SampleFrames',
+            clip_len=32,
+            frame_interval=2,
+            num_clips=10,
+            test_mode=True),
+        dict(type='RawFrameDecode'),
+        dict(type='Resize', scale=(-1, 256)),
+        dict(type='ThreeCrop', crop_size=256),
+        dict(type='Flip', flip_ratio=0),
+        dict(type='Normalize', **img_norm_cfg),
+        dict(type='FormatShape', input_format='NCTHW'),
         dict(type='Collect', keys=['imgs', 'label'], meta_keys=[]),
         dict(type='ToTensor', keys=['imgs'])
     ],
@@ -223,7 +190,7 @@ log_config = dict(
     interval=20,
     hooks=[
         dict(type='TextLoggerHook'),
-        dict(type='TensorboardLoggerHook'),
+        #dict(type='TensorboardLoggerHook'),
     ])
 annealing_runner = True
 dist_params = dict(backend='nccl')

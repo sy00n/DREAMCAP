@@ -384,6 +384,45 @@ class RandomCrop:
         self.size = size
         self.lazy = lazy
 
+    @staticmethod
+    def _crop_kps(kps, crop_bbox):
+        return kps - crop_bbox[:2]
+
+    @staticmethod
+    def _crop_imgs(imgs, crop_bbox):
+        x1, y1, x2, y2 = crop_bbox
+        return [img[y1:y2, x1:x2] for img in imgs]
+    
+    @staticmethod
+    def _box_crop(box, crop_bbox):
+        """Crop the bounding boxes according to the crop_bbox.
+        Args:
+            box (np.ndarray): The bounding boxes.
+            crop_bbox(np.ndarray): The bbox used to crop the original image.
+        """
+
+        x1, y1, x2, y2 = crop_bbox
+        img_w, img_h = x2 - x1, y2 - y1
+
+        box_ = box.copy()
+        box_[..., 0::2] = np.clip(box[..., 0::2] - x1, 0, img_w - 1)
+        box_[..., 1::2] = np.clip(box[..., 1::2] - y1, 0, img_h - 1)
+        return box_
+
+    def _all_box_crop(self, results, crop_bbox):
+        """Crop the gt_bboxes and proposals in results according to crop_bbox.
+        Args:
+            results (dict): All information about the sample, which contain
+                'gt_bboxes' and 'proposals' (optional).
+            crop_bbox(np.ndarray): The bbox used to crop the original image.
+        """
+        results['gt_bboxes'] = self._box_crop(results['gt_bboxes'], crop_bbox)
+        if 'proposals' in results and results['proposals'] is not None:
+            assert results['proposals'].shape[1] == 4
+            results['proposals'] = self._box_crop(results['proposals'],
+                                                  crop_bbox)
+        return results
+    
     def __call__(self, results):
         """Performs the RandomCrop augmentation.
 
@@ -409,11 +448,42 @@ class RandomCrop:
             [x_offset, y_offset, x_offset + new_w, y_offset + new_h])
         results['img_shape'] = (new_h, new_w)
 
+        if 'crop_quadruple' not in results:
+            results['crop_quadruple'] = np.array(
+                [0, 0, 1, 1],  # x, y, w, h
+                dtype=np.float32)
+
+        x_ratio, y_ratio = x_offset / img_w, y_offset / img_h
+        w_ratio, h_ratio = self.size / img_w, self.size / img_h
+
+        old_crop_quadruple = results['crop_quadruple']
+        old_x_ratio, old_y_ratio = old_crop_quadruple[0], old_crop_quadruple[1]
+        old_w_ratio, old_h_ratio = old_crop_quadruple[2], old_crop_quadruple[3]
+        new_crop_quadruple = [
+            old_x_ratio + x_ratio * old_w_ratio,
+            old_y_ratio + y_ratio * old_h_ratio, w_ratio * old_w_ratio,
+            h_ratio * old_h_ratio
+        ]
+        results['crop_quadruple'] = np.array(
+            new_crop_quadruple, dtype=np.float32)
+
+        new_h, new_w = self.size, self.size
+
+        crop_bbox = np.array(
+            [x_offset, y_offset, x_offset + new_w, y_offset + new_h])
+        results['crop_bbox'] = crop_bbox
+
+        results['img_shape'] = (new_h, new_w)
+        
         if not self.lazy:
-            results['imgs'] = [
-                img[y_offset:y_offset + new_h, x_offset:x_offset + new_w]
-                for img in results['imgs']
-            ]
+            if 'keypoint' in results:
+                results['keypoint'] = self._crop_kps(results['keypoint'], crop_bbox)
+            if 'imgs' in results:
+                results['imgs'] = self._crop_imgs(results['imgs'], crop_bbox)
+
+            # Process entity boxes
+            if 'gt_bboxes' in results:
+                results = self._all_box_crop(results, results['crop_bbox'])
         else:
             lazyop = results['lazy']
             if lazyop['flip']:
@@ -440,7 +510,7 @@ class RandomCrop:
 
 
 @PIPELINES.register_module()
-class RandomResizedCrop:
+class RandomResizedCrop(RandomCrop):
     """Random crop that specifics the area and height-weight ratio range.
 
     Required keys in results are "imgs", "img_shape", "crop_bbox" and "lazy",
@@ -535,13 +605,38 @@ class RandomResizedCrop:
             (img_h, img_w), self.area_range, self.aspect_ratio_range)
         new_h, new_w = bottom - top, right - left
 
+        if 'crop_quadruple' not in results:
+            results['crop_quadruple'] = np.array(
+                [0, 0, 1, 1],  # x, y, w, h
+                dtype=np.float32)
+
+        x_ratio, y_ratio = left / img_w, top / img_h
+        w_ratio, h_ratio = new_w / img_w, new_h / img_h
+
+        old_crop_quadruple = results['crop_quadruple']
+        old_x_ratio, old_y_ratio = old_crop_quadruple[0], old_crop_quadruple[1]
+        old_w_ratio, old_h_ratio = old_crop_quadruple[2], old_crop_quadruple[3]
+        new_crop_quadruple = [
+            old_x_ratio + x_ratio * old_w_ratio,
+            old_y_ratio + y_ratio * old_h_ratio, w_ratio * old_w_ratio,
+            h_ratio * old_h_ratio
+        ]
+        results['crop_quadruple'] = np.array(
+            new_crop_quadruple, dtype=np.float32)
+
+        crop_bbox = np.array([left, top, right, bottom])
+        
         results['crop_bbox'] = np.array([left, top, right, bottom])
         results['img_shape'] = (new_h, new_w)
 
         if not self.lazy:
-            results['imgs'] = [
-                img[top:bottom, left:right] for img in results['imgs']
-            ]
+            if 'keypoint' in results:
+                results['keypoint'] = self._crop_kps(results['keypoint'], crop_bbox)
+            if 'imgs' in results:
+                results['imgs'] = self._crop_imgs(results['imgs'], crop_bbox)
+
+            if 'gt_bboxes' in results:
+                results = self._all_box_crop(results, results['crop_bbox'])
         else:
             lazyop = results['lazy']
             if lazyop['flip']:
@@ -993,7 +1088,15 @@ class Flip:
                         results['keypoint_score'] = kpscore
 
             else:
-                results['imgs'] = list(results['imgs'])
+                if 'imgs' in results:
+                    results['imgs'] = list(results['imgs'])
+                if 'keypoint' in results:
+                    kp = results['keypoint']
+                    kpscore = results.get('keypoint_score', None)
+                    results['keypoint'] = kp
+                    if 'keypoint_score' in results:
+                        results['keypoint_score'] = kpscore
+                
         else:
             lazyop = results['lazy']
             if lazyop['flip']:

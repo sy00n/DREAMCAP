@@ -1,13 +1,13 @@
 {
-    "config": "config path",
-    "work-dir": "output/model",
-    "resume-from": null,
+    "config": "/Users/kwon-yujin/Desktop/DREAMCAP/configs/DREAM/dream.py",
+    "work_dir": "output/model",
+    "resume_from": null,
     "validate": true,
     "gpus": 1,
-    "gpu-ids": null,
+    "gpu_ids": null,
     "seed": 0,
     "deterministic": true,
-    "cfg-options": {},
+    "cfg_options": {},
     "launcher": "none",
     "local_rank": 0
 }

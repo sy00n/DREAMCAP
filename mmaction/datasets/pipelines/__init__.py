@@ -6,8 +6,8 @@ from .augmentations import (AudioAmplify, CenterCrop, ColorJitter,
                             RandomResizedCrop, RandomScale, Resize, TenCrop,
                             ThreeCrop, PoseCompact)
 from .compose import Compose
-from .formating import (Collect, FormatAudioShape, FormatShape, ImageToTensor,
-                        ToDataContainer, ToTensor, Transpose)
+from .formatting import (Collect, FormatAudioShape, FormatShape, ImageToTensor,
+                        ToDataContainer, ToTensor, Transpose, Rename)
 from .loading import (AudioDecode, AudioDecodeInit, AudioFeatureSelector,
                       BuildPseudoClip, DecordDecode, DecordInit,
                       DenseSampleFrames, FrameSelector,
@@ -19,13 +19,14 @@ from .loading import (AudioDecode, AudioDecodeInit, AudioFeatureSelector,
                       UntrimmedSampleFrames)
 from .heatmap_related import *
 from .pose_related import *
+from .sampling import *
 
 __all__ = [
     'SampleFrames', 'PyAVDecode', 'DecordDecode', 'DenseSampleFrames',
     'OpenCVDecode', 'FrameSelector', 'MultiGroupCrop', 'MultiScaleCrop',
     'RandomResizedCrop', 'RandomCrop', 'Resize', 'Flip', 'Fuse', 'Normalize',
     'ThreeCrop', 'PoseCompact', 'CenterCrop', 'TenCrop', 'ImageToTensor', 'Transpose',
-    'Collect', 'FormatShape', 'Compose', 'ToTensor', 'ToDataContainer',
+    'Collect', 'FormatShape', 'Compose', 'ToTensor', 'ToDataContainer', 'Rename'
     'GenerateLocalizationLabels', 'LoadLocalizationFeature', 'LoadProposals',
     'DecordInit', 'OpenCVInit', 'PyAVInit', 'SampleProposalFrames',
     'UntrimmedSampleFrames', 'RawFrameDecode', 'DecordInit', 'OpenCVInit',
@@ -34,5 +35,6 @@ __all__ = [
     'FormatAudioShape', 'LoadAudioFeature', 'AudioFeatureSelector',
     'AudioDecodeInit', 'EntityBoxPad', 'EntityBoxFlip', 'EntityBoxCrop',
     'EntityBoxRescale', 'EntityBoxClip', 'RandomScale', 'ImageDecode',
-    'BuildPseudoClip', 'RandomRescale', 'PyAVDecodeMotionVector'
+    'BuildPseudoClip', 'RandomRescale', 'PyAVDecodeMotionVector', 'RandomScale_Pose',
+    'UniformSampleFrames', 'UniformSample'
 ]

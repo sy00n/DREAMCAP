@@ -24,8 +24,6 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('cfg')
     args = parser.parse_args()
-    if 'LOCAL_RANK' not in os.environ:
-        os.environ['LOCAL_RANK'] = str(args.local_rank)
     return args
 
 
@@ -33,10 +31,16 @@ def main():
     args = parse_args()
     with open(args.cfg, 'r') as f:
         args = json.load(f, object_hook=lambda d: namedtuple('x', d.keys())(*d.values()))
+    
+    if 'LOCAL_RANK' not in os.environ:
+        os.environ['LOCAL_RANK'] = str(args.local_rank)
 
     cfg = Config.fromfile(args.config)
 
-    cfg.merge_from_dict(args.cfg_options)
+    try:
+        cfg.merge_from_dict(args.cfg_options)
+    except:
+        pass
 
     # set cudnn_benchmark
     if cfg.get('cudnn_benchmark', False):
@@ -109,11 +113,11 @@ def main():
         if cfg.omnisource:
             # If omnisource flag is set, cfg.data.train should be a list
             assert type(cfg.data.train) is list
-            rgb_datasets = [build_dataset(dataset) for dataset in cfg.data.rgb.train]
-            ske_datasets = [build_dataset(dataset) for dataset in cfg.data.ske.train]
+            rgb_datasets = [build_dataset(dataset) for dataset in cfg.data.train.rgb]
+            ske_datasets = [build_dataset(dataset) for dataset in cfg.data.train.skeleton]
         else:
-            rgb_datasets = [build_dataset(cfg.data.rgb.train)]
-            ske_datasets = [build_dataset(cfg.data.ske.train)]
+            rgb_datasets = [build_dataset(cfg.data.train.rgb)]
+            ske_datasets = [build_dataset(cfg.data.train.skeleton)]
 
         if len(cfg.workflow) == 2:
             # For simplicity, omnisource is not compatiable with val workflow,
@@ -123,12 +127,12 @@ def main():
                 warnings.warn('val workflow is duplicated with `--validate`, '
                             'it is recommended to use `--validate`. see '
                             'https://github.com/open-mmlab/mmaction2/pull/123')
-            rgb_val_dataset = copy.deepcopy(cfg.data.rgb.val)
-            ske_val_dataset = copy.deepcopy(cfg.data.ske.val)
+            rgb_val_dataset = copy.deepcopy(cfg.data.val.rgb)
+            ske_val_dataset = copy.deepcopy(cfg.data.val.skeleton)
             rgb_datasets.append(build_dataset(rgb_val_dataset))
             ske_datasets.append(build_dataset(ske_val_dataset))
         
-        datasets = [rgb_daetasets, ske_datasets]
+        datasets = [rgb_datasets, ske_datasets]
     else:
         if cfg.omnisource:
             # If omnisource flag is set, cfg.data.train should be a list

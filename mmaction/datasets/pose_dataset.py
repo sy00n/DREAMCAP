@@ -1,5 +1,6 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import os.path as osp
+import copy
 
 import mmcv
 
@@ -105,3 +106,83 @@ class PoseDataset(BaseDataset):
             if 'frame_dir' in item:
                 item['frame_dir'] = osp.join(self.data_prefix, item['frame_dir'])
         return data
+
+    def prepare_train_frames(self, idx):
+        """Prepare the frames for training given the index."""
+        results = copy.deepcopy(self.video_infos[idx])
+        if self.memcached and 'key' in results:
+            from pymemcache.client.base import Client
+            from pymemcache import serde
+
+            if self.cli is None:
+                self.cli = Client(self.mc_cfg, serde=serde.pickle_serde)
+            key = results.pop('key')
+            try:
+                pack = self.cli.get(key)
+            except:
+                self.cli = Client(self.mc_cfg, serde=serde.pickle_serde)
+                pack = self.cli.get(key)
+            if not isinstance(pack, dict):
+                raw_file = results['raw_file']
+                data = mmcv.load(raw_file)
+                pack = data[key]
+                for k in data:
+                    try:
+                        self.cli.set(k, data[k])
+                    except:
+                        self.cli = Client(self.mc_cfg, serde=serde.pickle_serde)
+                        self.cli.set(k, data[k])
+            for k in pack:
+                results[k] = pack[k]
+
+        results['modality'] = self.modality
+        results['start_index'] = self.start_index
+
+        # prepare tensor in getitem
+        # If HVU, type(results['label']) is dict
+        if self.multi_class and isinstance(results['label'], list):
+            onehot = torch.zeros(self.num_classes)
+            onehot[results['label']] = 1.
+            results['label'] = onehot
+
+        return self.pipeline(results)
+
+    def prepare_test_frames(self, idx):
+        """Prepare the frames for testing given the index."""
+        results = copy.deepcopy(self.video_infos[idx])
+        if self.memcached and 'key' in results:
+            from pymemcache.client.base import Client
+            from pymemcache import serde
+
+            if self.cli is None:
+                self.cli = Client(self.mc_cfg, serde=serde.pickle_serde)
+            key = results.pop('key')
+            try:
+                pack = self.cli.get(key)
+            except:
+                self.cli = Client(self.mc_cfg, serde=serde.pickle_serde)
+                pack = self.cli.get(key)
+            if not isinstance(pack, dict):
+                raw_file = results['raw_file']
+                data = mmcv.load(raw_file)
+                pack = data[key]
+                for k in data:
+                    try:
+                        self.cli.set(k, data[k])
+                    except:
+                        self.cli = Client(self.mc_cfg, serde=serde.pickle_serde)
+                        self.cli.set(k, data[k])
+            for k in pack:
+                results[k] = pack[k]
+
+        results['modality'] = self.modality
+        results['start_index'] = self.start_index
+
+        # prepare tensor in getitem
+        # If HVU, type(results['label']) is dict
+        if self.multi_class and isinstance(results['label'], list):
+            onehot = torch.zeros(self.num_classes)
+            onehot[results['label']] = 1.
+            results['label'] = onehot
+
+        return self.pipeline(results)

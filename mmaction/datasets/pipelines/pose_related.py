@@ -102,7 +102,7 @@ class RandomRot:
 
 
 @PIPELINES.register_module()
-class RandomScale:
+class RandomScale_Pose:
 
     def __init__(self, scale=0.2):
         assert isinstance(scale, tuple) or isinstance(scale, float)

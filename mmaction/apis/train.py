@@ -33,6 +33,8 @@ def train_model(model,
             Default: None
     """
     logger = get_root_logger(log_level=cfg.log_level)
+    
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # prepare data loaders
     
@@ -65,15 +67,23 @@ def train_model(model,
                     this_setting = cp.deepcopy(dataloader_setting)
                     this_setting['videos_per_gpu'] = videos_per_gpu
                     dataloader_settings.append(this_setting)
-            data_loaders = [
+            rgb_data_loaders = [
                 build_dataloader(ds, **setting)
-                for ds, setting in zip(dataset, dataloader_settings)
+                for ds, setting in zip(rgb_dataset, dataloader_settings)
             ]
-
+            ske_data_loaders = [
+                build_dataloader(ds, **setting)
+                for ds, setting in zip(ske_dataset, dataloader_settings)
+            ]
+            data_loaders = list(zip(rgb_data_loaders, ske_data_loaders))
         else:
-            data_loaders = [
-                build_dataloader(ds, **dataloader_setting) for ds in dataset
+            rgb_data_loaders = [
+                build_dataloader(ds, **dataloader_setting) for ds in rgb_dataset
             ]
+            ske_data_loaders = [
+                build_dataloader(ds, **dataloader_setting) for ds in ske_dataset
+            ]
+            data_loaders = list(zip(rgb_data_loaders, ske_data_loaders))
     else:
         if cfg.omnisource:
             # The option can override videos_per_gpu
@@ -109,7 +119,7 @@ def train_model(model,
             find_unused_parameters=find_unused_parameters)
     else:
         model = MMDataParallel(
-            model.cuda(cfg.gpu_ids[0]), device_ids=cfg.gpu_ids)
+            model.to(device))
 
     # build runner
     optimizer = build_optimizer(model, cfg.optimizer)
@@ -153,8 +163,8 @@ def train_model(model,
     if validate:
         if cfg.dual_modality:
             eval_cfg = cfg.get('evaluation', {})
-            rgb_val_dataset = build_dataset(cfg.data.rgb.val, dict(test_mode=True))
-            ske_val_dataset = build_dataset(cfg.data.ske.val, dict(test_mode=True))
+            rgb_val_dataset = build_dataset(cfg.data.val.rgb, dict(test_mode=True))
+            ske_val_dataset = build_dataset(cfg.data.val.skeleton, dict(test_mode=True))
             dataloader_setting = dict(
                 videos_per_gpu=cfg.data.get('videos_per_gpu', 1),
                 workers_per_gpu=cfg.data.get('workers_per_gpu', 1),
@@ -165,9 +175,11 @@ def train_model(model,
                 shuffle=False)
             dataloader_setting = dict(dataloader_setting,
                                     **cfg.data.get('val_dataloader', {}))
-            val_dataloader = build_dataloader(val_dataset, **dataloader_setting)
+            rgb_val_dataloader = build_dataloader(rgb_val_dataset, **dataloader_setting)
+            ske_val_dataloader = build_dataloader(ske_val_dataset, **dataloader_setting)
+            val_dataloader = list(zip(rgb_val_dataloader, ske_val_dataloader))
             eval_hook = DistEpochEvalHook if distributed else EpochEvalHook
-            runner.register_hook(eval_hook(val_dataloader, **eval_cfg))
+            #runner.register_hook(eval_hook(val_dataloader, **eval_cfg))
         else:
             eval_cfg = cfg.get('evaluation', {})
             val_dataset = build_dataset(cfg.data.val, dict(test_mode=True))
@@ -183,7 +195,7 @@ def train_model(model,
                                     **cfg.data.get('val_dataloader', {}))
             val_dataloader = build_dataloader(val_dataset, **dataloader_setting)
             eval_hook = DistEpochEvalHook if distributed else EpochEvalHook
-            runner.register_hook(eval_hook(val_dataloader, **eval_cfg))
+            #runner.register_hook(eval_hook(val_dataloader, **eval_cfg))
 
     if cfg.resume_from:
         runner.resume(cfg.resume_from)
@@ -194,4 +206,5 @@ def train_model(model,
         runner_kwargs = dict(train_ratio=train_ratio)
     if cfg.get('annealing_runner', False):
         runner_kwargs.update(annealing=True)
+
     runner.run(data_loaders, cfg.workflow, cfg.total_epochs, **runner_kwargs)

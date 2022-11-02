@@ -56,14 +56,16 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
     def __init__(self,
                  ann_file,
                  pipeline,
-                 data_prefix=None,
+                 data_prefix='',
                  test_mode=False,
                  multi_class=False,
                  num_classes=None,
                  start_index=1,
                  modality='RGB',
+                 memcached=False,
                  sample_by_class=False,
-                 power=None):
+                 power=None,
+                 mc_cfg=('localhost', 22077)):
         super().__init__()
 
         self.ann_file = ann_file
@@ -75,6 +77,8 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
         self.num_classes = num_classes
         self.start_index = start_index
         self.modality = modality
+        self.memcached = memcached
+        self.mc_cfg = mc_cfg
         self.sample_by_class = sample_by_class
         self.power = power
         assert not (self.multi_class and self.sample_by_class)

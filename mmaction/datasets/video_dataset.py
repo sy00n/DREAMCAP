@@ -1,6 +1,6 @@
 import os.path as osp
 
-import torch
+import mmcv
 
 from .base import BaseDataset
 from .registry import DATASETS
@@ -37,31 +37,28 @@ class VideoDataset(BaseDataset):
         **kwargs: Keyword arguments for ``BaseDataset``.
     """
 
-    def __init__(self, ann_file, pipeline, start_index=0, **kwargs):
+    def __init__(self, ann_file, pipeline, split=None, start_index=0, **kwargs):
+        self.split = split
         super().__init__(ann_file, pipeline, start_index=start_index, **kwargs)
-
+    
     def load_annotations(self):
         """Load annotation file to get video information."""
-        if self.ann_file.endswith('.json'):
-            return self.load_json_annotations()
+        assert self.ann_file.endswith('.pkl')
+        return self.load_pkl_annotations()
 
-        video_infos = []
-        with open(self.ann_file, 'r') as fin:
-            for line in fin:
-                line_split = line.strip().split()
-                if self.multi_class:
-                    assert self.num_classes is not None
-                    filename, label = line_split[0], line_split[1:]
-                    label = list(map(int, label))
-                    onehot = torch.zeros(self.num_classes)
-                    onehot[label] = 1.0
-                else:
-                    filename, label = line_split
-                    label = int(label)
-                if self.data_prefix is not None:
-                    filename = osp.join(self.data_prefix, filename)
-                video_infos.append(
-                    dict(
-                        filename=filename,
-                        label=onehot if self.multi_class else label))
-        return video_infos
+    def load_pkl_annotations(self):
+        data = mmcv.load(self.ann_file)
+
+        if self.split:
+            split, data = data['split'], data['annotations']
+            identifier = 'filename' if 'filename' in data[0] else 'frame_dir'
+            split = set(split[self.split])
+            data = [x for x in data if x[identifier] in split]
+
+        for item in data:
+            # Sometimes we may need to load anno from the file
+            if 'filename' in item:
+                item['filename'] = osp.join(self.data_prefix, item['filename'])
+            if 'frame_dir' in item:
+                item['frame_dir'] = osp.join(self.data_prefix, item['frame_dir'])
+        return data

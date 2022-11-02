@@ -764,6 +764,28 @@ class Resize:
         self.interpolation = interpolation
         self.lazy = lazy
 
+    def _resize_imgs(self, imgs, new_w, new_h):
+        return [
+            mmcv.imresize(
+                img, (new_w, new_h), interpolation=self.interpolation)
+            for img in imgs
+        ]
+
+    @staticmethod
+    def _resize_kps(kps, scale_factor):
+        return kps * scale_factor
+
+    @staticmethod
+    def _box_resize(box, scale_factor):
+        """Rescale the bounding boxes according to the scale_factor.
+        Args:
+            box (np.ndarray): The bounding boxes.
+            scale_factor (np.ndarray): The scale factor used for rescaling.
+        """
+        assert len(scale_factor) == 2
+        scale_factor = np.concatenate([scale_factor, scale_factor])
+        return box * scale_factor
+    
     def __call__(self, results):
         """Performs the Resize augmentation.
 
@@ -790,18 +812,18 @@ class Resize:
         results['keep_ratio'] = self.keep_ratio
         results['scale_factor'] = results['scale_factor'] * self.scale_factor
 
-        if not self.lazy:
-            results['imgs'] = [
-                mmcv.imresize(
-                    img, (new_w, new_h), interpolation=self.interpolation)
-                for img in results['imgs']
-            ]
-        else:
-            lazyop = results['lazy']
-            if lazyop['flip']:
-                raise NotImplementedError('Put Flip at last for now')
-            lazyop['interpolation'] = self.interpolation
+        if 'imgs' in results:
+            results['imgs'] = self._resize_imgs(results['imgs'], new_w, new_h)
+        if 'keypoint' in results:
+            results['keypoint'] = self._resize_kps(results['keypoint'], self.scale_factor)
 
+        if 'gt_bboxes' in results:
+            results['gt_bboxes'] = self._box_resize(results['gt_bboxes'], self.scale_factor)
+            if 'proposals' in results and results['proposals'] is not None:
+                assert results['proposals'].shape[1] == 4
+                results['proposals'] = self._box_resize(
+                    results['proposals'], self.scale_factor)
+                
         return results
 
     def __repr__(self):
@@ -883,13 +905,52 @@ class Flip:
     """
     _directions = ['horizontal', 'vertical']
 
-    def __init__(self, flip_ratio=0.5, direction='horizontal', lazy=False):
+    def __init__(self, flip_ratio=0.5, direction='horizontal', flip_label_map=None,
+                 left_kp=None, right_kp=None, lazy=False):
         if direction not in self._directions:
             raise ValueError(f'Direction {direction} is not supported. '
                              f'Currently support ones are {self._directions}')
         self.flip_ratio = flip_ratio
         self.direction = direction
+        self.flip_label_map = flip_label_map
+        self.left_kp = left_kp
+        self.right_kp = right_kp
         self.lazy = lazy
+        
+
+    def _flip_imgs(self, imgs, modality):
+        _ = [mmcv.imflip_(img, self.direction) for img in imgs]
+        lt = len(imgs)
+        if modality == 'Flow':
+            # The 1st frame of each 2 frames is flow-x
+            for i in range(0, lt, 2):
+                imgs[i] = mmcv.iminvert(imgs[i])
+        return imgs
+
+    def _flip_kps(self, kps, kpscores, img_width):
+        kp_x = kps[..., 0]
+        kp_x[kp_x != 0] = img_width - kp_x[kp_x != 0]
+        new_order = list(range(kps.shape[2]))
+        if self.left_kp is not None and self.right_kp is not None:
+            for left, right in zip(self.left_kp, self.right_kp):
+                new_order[left] = right
+                new_order[right] = left
+        kps = kps[:, :, new_order]
+        if kpscores is not None:
+            kpscores = kpscores[:, :, new_order]
+        return kps, kpscores
+
+    @staticmethod
+    def _box_flip(box, img_width):
+        """Flip the bounding boxes given the width of the image.
+        Args:
+            box (np.ndarray): The bounding boxes.
+            img_width (int): The img width.
+        """
+        box_ = box.copy()
+        box_[..., 0::4] = img_width - box[..., 2::4]
+        box_[..., 2::4] = img_width - box[..., 0::4]
+        return box_
 
     def __call__(self, results):
         """Performs the Flip augmentation.
@@ -899,6 +960,12 @@ class Flip:
                 to the next transform in pipeline.
         """
         _init_lazy_if_proper(results, self.lazy)
+        
+        if 'keypoint' in results:
+            assert self.direction == 'horizontal', (
+                'Only horizontal flips are'
+                'supported for human keypoints')
+            
         modality = results['modality']
         if modality == 'Flow':
             assert self.direction == 'horizontal'
@@ -907,17 +974,23 @@ class Flip:
 
         results['flip'] = flip
         results['flip_direction'] = self.direction
+        img_width = results['img_shape'][1]
+
+        if self.flip_label_map is not None and flip:
+            results['label'] = self.flip_label_map.get(results['label'],
+                                                       results['label'])
 
         if not self.lazy:
             if flip:
-                for i, img in enumerate(results['imgs']):
-                    mmcv.imflip_(img, self.direction)
-                lt = len(results['imgs'])
-                for i in range(0, lt, 2):
-                    # flow with even indexes are x_flow, which need to be
-                    # inverted when doing horizontal flip
-                    if modality == 'Flow':
-                        results['imgs'][i] = mmcv.iminvert(results['imgs'][i])
+                if 'imgs' in results:
+                    results['imgs'] = self._flip_imgs(results['imgs'], modality)
+                if 'keypoint' in results:
+                    kp = results['keypoint']
+                    kpscore = results.get('keypoint_score', None)
+                    kp, kpscore = self._flip_kps(kp, kpscore, img_width)
+                    results['keypoint'] = kp
+                    if 'keypoint_score' in results:
+                        results['keypoint_score'] = kpscore
 
             else:
                 results['imgs'] = list(results['imgs'])
@@ -927,6 +1000,16 @@ class Flip:
                 raise NotImplementedError('Use one Flip please')
             lazyop['flip'] = flip
             lazyop['flip_direction'] = self.direction
+            
+            
+        if 'gt_bboxes' in results and flip:
+            assert self.direction == 'horizontal'
+            width = results['img_shape'][1]
+            results['gt_bboxes'] = self._box_flip(results['gt_bboxes'], width)
+            if 'proposals' in results and results['proposals'] is not None:
+                assert results['proposals'].shape[1] == 4
+                results['proposals'] = self._box_flip(results['proposals'],
+                                                      width)
 
         return results
 
@@ -1591,6 +1674,9 @@ class MelSpectrogram:
                     f'n_mels={self.n_mels}, '
                     f'fixed_length={self.fixed_length})')
         return repr_str
+
+def _combine_quadruple(a, b):
+    return (a[0] + a[2] * b[0], a[1] + a[3] * b[1], a[2] * b[2], a[3] * b[3])
 
 @PIPELINES.register_module()
 class PoseCompact:

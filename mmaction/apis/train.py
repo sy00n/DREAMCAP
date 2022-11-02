@@ -88,6 +88,8 @@ def train_model(model,
     if cfg.dual_modality:
         rgb_dataset = dataset[0] if isinstance(dataset[0], (list, tuple)) else [dataset[0]]
         ske_dataset = dataset[1] if isinstance(dataset[1], (list, tuple)) else [dataset[1]]
+        from ..datasets import DREAMDataset
+        dataset = DREAMDataset(rgb_dataset[0], ske_dataset[0])
     else:
         dataset = dataset if isinstance(dataset, (list, tuple)) else [dataset]
 
@@ -101,58 +103,27 @@ def train_model(model,
     dataloader_setting = dict(dataloader_setting,
                               **cfg.data.get('train_dataloader', {}))
 
-    if cfg.dual_modality:
-        if cfg.omnisource:
-            # The option can override videos_per_gpu
-            train_ratio = cfg.data.get('train_ratio', [1] * len(dataset))
-            omni_videos_per_gpu = cfg.data.get('omni_videos_per_gpu', None)
-            if omni_videos_per_gpu is None:
-                dataloader_settings = [dataloader_setting] * len(dataset)
-            else:
-                dataloader_settings = []
-                for videos_per_gpu in omni_videos_per_gpu:
-                    this_setting = cp.deepcopy(dataloader_setting)
-                    this_setting['videos_per_gpu'] = videos_per_gpu
-                    dataloader_settings.append(this_setting)
-            rgb_data_loaders = [
-                build_dataloader(ds, **setting)
-                for ds, setting in zip(rgb_dataset, dataloader_settings)
-            ]
-            ske_data_loaders = [
-                build_dataloader(ds, **setting)
-                for ds, setting in zip(ske_dataset, dataloader_settings)
-            ]
-            data_loaders = [list(zip(rgb_data_loaders, ske_data_loaders))]
+    if cfg.omnisource:
+        # The option can override videos_per_gpu
+        train_ratio = cfg.data.get('train_ratio', [1] * len(dataset))
+        omni_videos_per_gpu = cfg.data.get('omni_videos_per_gpu', None)
+        if omni_videos_per_gpu is None:
+            dataloader_settings = [dataloader_setting] * len(dataset)
         else:
-            rgb_data_loaders = [
-                build_dataloader(ds, **dataloader_setting) for ds in rgb_dataset
-            ]
-            ske_data_loaders = [
-                build_dataloader(ds, **dataloader_setting) for ds in ske_dataset
-            ]
-            data_loaders = [list(zip(rgb_data_loaders[0], ske_data_loaders[0]))]
-    else:
-        if cfg.omnisource:
-            # The option can override videos_per_gpu
-            train_ratio = cfg.data.get('train_ratio', [1] * len(dataset))
-            omni_videos_per_gpu = cfg.data.get('omni_videos_per_gpu', None)
-            if omni_videos_per_gpu is None:
-                dataloader_settings = [dataloader_setting] * len(dataset)
-            else:
-                dataloader_settings = []
-                for videos_per_gpu in omni_videos_per_gpu:
-                    this_setting = cp.deepcopy(dataloader_setting)
-                    this_setting['videos_per_gpu'] = videos_per_gpu
-                    dataloader_settings.append(this_setting)
-            data_loaders = [
-                build_dataloader(ds, **setting)
-                for ds, setting in zip(dataset, dataloader_settings)
-            ]
+            dataloader_settings = []
+            for videos_per_gpu in omni_videos_per_gpu:
+                this_setting = cp.deepcopy(dataloader_setting)
+                this_setting['videos_per_gpu'] = videos_per_gpu
+                dataloader_settings.append(this_setting)
+        data_loaders = [
+            build_dataloader(ds, **setting)
+            for ds, setting in zip(dataset, dataloader_settings)
+        ]
 
-        else:
-            data_loaders = [
-                build_dataloader(ds, **dataloader_setting) for ds in dataset
-            ]
+    else:
+        data_loaders = [
+            build_dataloader(ds, **dataloader_setting) for ds in dataset
+        ]
 
     # put model on gpus
     if distributed:

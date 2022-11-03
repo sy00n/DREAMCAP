@@ -89,7 +89,7 @@ def train_model(model,
         rgb_dataset = dataset[0] if isinstance(dataset[0], (list, tuple)) else [dataset[0]]
         ske_dataset = dataset[1] if isinstance(dataset[1], (list, tuple)) else [dataset[1]]
         from ..datasets import DREAMDataset
-        dataset = DREAMDataset(rgb_dataset[0], ske_dataset[0])
+        dataset = [DREAMDataset(rgb_dataset[0], ske_dataset[0])]
     else:
         dataset = dataset if isinstance(dataset, (list, tuple)) else [dataset]
 

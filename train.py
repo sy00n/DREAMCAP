@@ -92,10 +92,6 @@ def main():
                 dash_line)
     meta['env_info'] = env_info
 
-    # log some basic info
-    logger.info(f'Distributed training: {distributed}')
-    logger.info(f'Config: {cfg.text}')
-
     # set random seeds
     if args.seed is not None:
         logger.info(f'Set random seed to {args.seed}, '

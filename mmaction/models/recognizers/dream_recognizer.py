@@ -5,6 +5,20 @@ from .base import BaseRecognizer
 @RECOGNIZERS.register_module()
 class DREAMRecognizer3D(BaseRecognizer):
     """3D recognizer model framework."""
+    def forward(self, rgbs, skes, label=None, return_loss=True, **kwargs):
+        """Define the computation performed at every call."""
+        if kwargs.get('gradcam', False):
+            del kwargs['gradcam']
+            return self.forward_gradcam(rgbs, skes, **kwargs)
+        if kwargs.get('get_feat', False):
+            del kwargs['get_feat']
+            return self.get_feat(rgbs, skes, **kwargs)
+        if return_loss:
+            if label is None:
+                raise ValueError('Label should not be None.')
+            return self.forward_train(rgbs, skes, label, **kwargs)
+
+        return self.forward_test(rgbs, skes, **kwargs)
 
     def forward_train(self, rgbs, skes, labels, **kwargs):
         """Defines the computation performed at every call when training."""
@@ -121,7 +135,7 @@ class DREAMRecognizer3D(BaseRecognizer):
         rgb_label = rgb_data_batch['label']
         ske_label = ske_data_batch['label']
         
-        assert rgb_label == ske_label
+        assert rgb_label.shape[0] == sum(rgb_label==ske_label)[0]
 
         aux_info = {}
         for item in self.aux_info:
@@ -152,7 +166,7 @@ class DREAMRecognizer3D(BaseRecognizer):
         rgb_label = rgb_data_batch['label']
         ske_label = ske_data_batch['label']
 
-        assert rgb_label == ske_label
+        assert rgb_label.shape[0] == sum(rgb_label==ske_label)[0]
         
         aux_info = {}
         for item in self.aux_info:

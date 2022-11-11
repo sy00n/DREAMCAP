@@ -157,6 +157,7 @@ data = dict(
     train={
         "rgb":dict(
             type='RepeatDataset',
+            data_dir='',
             times=10,
             dataset=dict(type=dataset_type['rgb'], ann_file=ann_file['rgb'], split='train', data_prefix='data/kinetics400/video_frame', pipeline=train_pipeline['rgb'])),
         "skeleton":dict(

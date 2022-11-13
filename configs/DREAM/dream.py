@@ -58,7 +58,7 @@ model = dict(
         dropout_ratio=0.5,
         init_std=0.01))
 
-dataset_type = {'rgb':'VideoDataset',
+dataset_type = {'rgb':'DreamVideoDataset',
                 'skeleton':'PoseDataset'}
 ann_file = {
     "rgb":'./data/gym/gym_hrnet.pkl',
@@ -159,18 +159,18 @@ data = dict(
             type='RepeatDataset',
             data_dir='',
             times=10,
-            dataset=dict(type=dataset_type['rgb'], ann_file=ann_file['rgb'], split='train', data_prefix='data/kinetics400/video_frame', pipeline=train_pipeline['rgb'])),
+            dataset=dict(type=dataset_type['rgb'], data_dir='', ann_file=ann_file['rgb'], split='train', data_prefix='data/kinetics400/video_frame', pipeline=train_pipeline['rgb'])),
         "skeleton":dict(
             type='RepeatDataset',
             times=10,
             dataset=dict(type=dataset_type['skeleton'], ann_file=ann_file['skeleton'], split='train', pipeline=train_pipeline['skeleton'])),
     },
     val={
-        "rgb":dict(type=dataset_type['rgb'], ann_file=ann_file['rgb'], split='val', data_prefix='data/kinetics400/video_frame', pipeline=val_pipeline['rgb']),
+        "rgb":dict(type=dataset_type['rgb'], data_dir='', ann_file=ann_file['rgb'], split='val', data_prefix='data/kinetics400/video_frame', pipeline=val_pipeline['rgb']),
         "skeleton":dict(type=dataset_type['skeleton'], ann_file=ann_file['skeleton'], split='val', pipeline=val_pipeline['skeleton']),
     },
     test={
-        "rgb":dict(type=dataset_type['rgb'], ann_file=ann_file['rgb'], split='val', data_prefix='data/kinetics400/video_frame', pipeline=test_pipeline['rgb']),
+        "rgb":dict(type=dataset_type['rgb'], data_dir='', ann_file=ann_file['rgb'], split='val', data_prefix='data/kinetics400/video_frame', pipeline=test_pipeline['rgb']),
         "skeleton":dict(type=dataset_type['skeleton'], ann_file=ann_file['skeleton'], split='val', pipeline=test_pipeline['rgb'])
     }
 )

@@ -103,7 +103,6 @@ class DreamVideoDataset(BaseDataset):
 
         if self.split:
             split, data = data['split'], data['annotations']
-            data['rgb'] = np.load(f"{self.ann_file['data_dir']}/{data['frame_dir']}.npy")
             identifier = 'filename' if 'filename' in data[0] else 'frame_dir'
             split = set(split[self.split])
             data = [x for x in data if x[identifier] in split]
@@ -112,8 +111,10 @@ class DreamVideoDataset(BaseDataset):
             # Sometimes we may need to load anno from the file
             if 'filename' in item:
                 item['filename'] = osp.join(self.data_prefix, item['filename'])
+                item['rgb'] = np.load(f"{item['filename']}.npy")
             if 'frame_dir' in item:
                 item['frame_dir'] = osp.join(self.data_prefix, item['frame_dir'])
+                item['rgb'] = np.load(f"{item['frame_dir']}.npy")
         return data
 
 

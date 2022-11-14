@@ -1130,6 +1130,8 @@ class RawFrameDecode:
             frame_idx += offset
             if modality == 'RGB':
                 filepath = osp.join(directory, filename_tmpl.format(frame_idx))
+                #print(type(directory), type(filename_tmpl.format(frame_idx)))
+                #print(filepath)
                 img_bytes = self.file_client.get(filepath)
                 # Get frame with channel order RGB directly.
                 cur_frame = mmcv.imfrombytes(img_bytes, channel_order='rgb')

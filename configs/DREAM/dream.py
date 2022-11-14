@@ -29,7 +29,7 @@ model = dict(
             conv1_stride_t=1,
             pool1_stride_t=1,
             inflate=(0, 0, 1, 1),
-            in_channels=17,
+            in_channels=3,
             norm_eval=False),
         ske_pathway=dict(
             type='resnet3d',
@@ -58,7 +58,7 @@ model = dict(
         dropout_ratio=0.5,
         init_std=0.01))
 
-dataset_type = {'rgb':'DreamVideoDataset',
+dataset_type = {'rgb':'VideoDataset',
                 'skeleton':'PoseDataset'}
 ann_file = {
     "rgb":'../data/diving48/new_diving48_rgb.pkl',
@@ -80,12 +80,12 @@ train_pipeline = {
         dict(type='ToTensor', keys=['imgs', 'label'])
     ],
     "skeleton":[
-        dict(type='UniformSampleFrames', clip_len=48),
+        dict(type='UniformSampleFrames', clip_len=32),
         dict(type='PoseDecode'),
         dict(type='PoseCompact', hw_ratio=1., allow_imgpad=True),
-        dict(type='Resize', scale=(-1, 64)),
+        dict(type='Resize', scale=(-1, 256)),
         dict(type='RandomResizedCrop', area_range=(0.56, 1.0)),
-        dict(type='Resize', scale=(56, 56), keep_ratio=False),
+        dict(type='Resize', scale=(224, 224), keep_ratio=False),
         dict(type='Flip', flip_ratio=0.5, left_kp=left_kp, right_kp=right_kp),
         dict(type='GeneratePoseTarget', with_kp=True, with_limb=False),
         dict(type='FormatShape', input_format='NCTHW_Heatmap'),
@@ -151,38 +151,26 @@ test_pipeline = {
 }
 dual_modality = True
 data = dict(
-    videos_per_gpu=32,
-    workers_per_gpu=4,
+    videos_per_gpu=1,
+    workers_per_gpu=1,
     test_dataloader=dict(videos_per_gpu=1),
     train={
         "rgb":dict(
             type='RepeatDataset',
             times=10,
-<<<<<<< Updated upstream
-            dataset=dict(type=dataset_type['rgb'], data_dir='', ann_file=ann_file['rgb'], split='train', data_prefix='data/kinetics400/video_frame', pipeline=train_pipeline['rgb'])),
-=======
-            dataset=dict(type=dataset_type['rgb'], ann_file=ann_file['rgb'], split='train', data_prefix='../data/diving48/rgb_np', pipeline=train_pipeline['rgb'])),
->>>>>>> Stashed changes
+            dataset=dict(type=dataset_type['rgb'], ann_file=ann_file['rgb'], split='train', data_prefix='../data/diving48', pipeline=train_pipeline['rgb'])),
         "skeleton":dict(
             type='RepeatDataset',
             times=10,
             dataset=dict(type=dataset_type['skeleton'], ann_file=ann_file['skeleton'], split='train', pipeline=train_pipeline['skeleton'])),
     },
     val={
-<<<<<<< Updated upstream
-        "rgb":dict(type=dataset_type['rgb'], data_dir='', ann_file=ann_file['rgb'], split='val', data_prefix='data/kinetics400/video_frame', pipeline=val_pipeline['rgb']),
-        "skeleton":dict(type=dataset_type['skeleton'], ann_file=ann_file['skeleton'], split='val', pipeline=val_pipeline['skeleton']),
+        "rgb":dict(type=dataset_type['rgb'], ann_file=ann_file['rgb'], split='test', data_prefix='../data/diving48', pipeline=val_pipeline['rgb']),
+        "skeleton":dict(type=dataset_type['skeleton'], ann_file=ann_file['skeleton'], split='test', pipeline=val_pipeline['skeleton']),
     },
     test={
-        "rgb":dict(type=dataset_type['rgb'], data_dir='', ann_file=ann_file['rgb'], split='val', data_prefix='data/kinetics400/video_frame', pipeline=test_pipeline['rgb']),
-=======
-        "rgb":dict(type=dataset_type['rgb'], ann_file=ann_file['rgb'], split='val', data_prefix='../data/diving48/rgb_np', pipeline=val_pipeline['rgb']),
-        "skeleton":dict(type=dataset_type['skeleton'], ann_file=ann_file['skeleton'], split='val', pipeline=val_pipeline['skeleton']),
-    },
-    test={
-        "rgb":dict(type=dataset_type['rgb'], ann_file=ann_file['rgb'], split='val', data_prefix='../data/diving48/rgb_np', pipeline=test_pipeline['rgb']),
->>>>>>> Stashed changes
-        "skeleton":dict(type=dataset_type['skeleton'], ann_file=ann_file['skeleton'], split='val', pipeline=test_pipeline['rgb'])
+        "rgb":dict(type=dataset_type['rgb'], ann_file=ann_file['rgb'], split='test', data_prefix='../data/diving48', pipeline=test_pipeline['rgb']),
+        "skeleton":dict(type=dataset_type['skeleton'], ann_file=ann_file['skeleton'], split='test', pipeline=test_pipeline['rgb'])
     }
 )
 # optimizer
@@ -213,4 +201,3 @@ work_dir = './output/dreamnet'
 resume_from = None
 load_from = None
 find_unused_parameters = False
-

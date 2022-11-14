@@ -13,12 +13,12 @@ from .rawvideo_dataset import RawVideoDataset
 from .ssn_dataset import SSNDataset
 from .video_dataset import VideoDataset
 from .pose_dataset import PoseDataset
-from .dream_dataset import DREAMDataset, DreamVideoDataset
+from .dream_dataset import DREAMDataset
 
 __all__ = [
     'VideoDataset', 'build_dataloader', 'build_dataset', 'RepeatDataset',
     'RawframeDataset', 'BaseDataset', 'ActivityNetDataset', 'SSNDataset',
     'HVUDataset', 'AudioDataset', 'AudioFeatureDataset', 'ImageDataset',
     'RawVideoDataset', 'AVADataset', 'AudioVisualDataset', 'PoseDataset', 
-    'DREAMDataset', 'DreamVideoDataset'
+    'DREAMDataset'
 ]

@@ -20,10 +20,22 @@ class DREAMRecognizer3D(BaseRecognizer):
 
         return self.forward_test(rgbs, skes, **kwargs)
 
+    def extract_feat(self, rgbs, skes):
+        """Extract features through a backbone.
+
+        Args:
+            imgs (torch.Tensor): The input images.
+
+        Returns:
+            torch.tensor: The extracted features.
+        """
+        x = self.backbone(rgbs, skes)
+        return x
+
     def forward_train(self, rgbs, skes, labels, **kwargs):
         """Defines the computation performed at every call when training."""
-        rgbs = rgbs.reshape((-1, ) + imgs.shape[2:])
-        skes = skes.reshape((-1, ) + imgs.shape[2:])
+        rgbs = rgbs.reshape((-1, ) + rgbs.shape[2:])
+        skes = skes.reshape((-1, ) + skes.shape[2:])
         losses = dict()
 
         x = self.extract_feat(rgbs, skes)
@@ -171,7 +183,7 @@ class DREAMRecognizer3D(BaseRecognizer):
         aux_info = {}
         for item in self.aux_info:
             aux_info[item] = rgb_data_batch[item]
-
+ 
         losses = self(rgb_imgs, ske_imgs, rgb_label, return_loss=True, **aux_info)
 
         loss, log_vars = self._parse_losses(losses)

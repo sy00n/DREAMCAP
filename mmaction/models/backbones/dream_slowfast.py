@@ -456,18 +456,9 @@ class DREAM3dSlowFast(nn.Module):
             tuple[torch.Tensor]: The feature of the input samples extracted
                 by the backbone.
         """
-        x_rgb = nn.functional.interpolate(
-            rgb,
-            mode='nearest',
-            scale_factor=(1.0 / self.resample_rate, 1.0, 1.0))
         x_rgb = self.rgb_path.conv1(x_rgb)
         x_rgb = self.rgb_path.maxpool(x_rgb)
 
-        x_ske = nn.functional.interpolate(
-            ske,
-            mode='nearest',
-            scale_factor=(1.0 / (self.resample_rate // self.speed_ratio), 1.0,
-                          1.0))
         x_ske = self.ske_path.conv1(x_ske)
         x_ske = self.ske_path.maxpool(x_ske)
 

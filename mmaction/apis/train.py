@@ -1,4 +1,5 @@
 import copy as cp
+from itertools import chain
 
 import torch
 from mmcv.parallel import MMDataParallel, MMDistributedDataParallel

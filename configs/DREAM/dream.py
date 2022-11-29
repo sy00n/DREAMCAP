@@ -2,7 +2,7 @@ img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_bgr=False)
 # model settings
 evidence_loss = dict(type='EvidenceLoss',
-                      num_classes=48,
+                      num_classes=101,
                       evidence='exp',
                       loss_type='log',
                       with_kldiv=False,
@@ -60,10 +60,7 @@ model = dict(
 
 dataset_type = {'rgb':'VideoDataset',
                 'skeleton':'PoseDataset'}
-ann_file = {
-    "rgb":'../data/ucf101/ucf101_rgb.pkl',
-    "skeleton":'../data/ucf101/ucf101_ske.pkl'
-}
+ann_file = '../data/ucf101/ucf101_dual.pkl'
 left_kp = [1, 3, 5, 7, 9, 11, 13, 15]
 right_kp = [2, 4, 6, 8, 10, 12, 14, 16]
 train_pipeline = {
@@ -158,19 +155,19 @@ data = dict(
         "rgb":dict(
             type='RepeatDataset',
             times=10,
-            dataset=dict(type=dataset_type['rgb'], ann_file=ann_file['rgb'], split='train', data_prefix='../data/ucf101', pipeline=train_pipeline['rgb'], start_index=1)),
+            dataset=dict(type=dataset_type['rgb'], ann_file=ann_file, split='train', data_prefix='../data/ucf101/rawframes', pipeline=train_pipeline['rgb'], start_index=1)),
         "skeleton":dict(
             type='RepeatDataset',
             times=10,
-            dataset=dict(type=dataset_type['skeleton'], ann_file=ann_file['skeleton'], split='train', pipeline=train_pipeline['skeleton'])),
+            dataset=dict(type=dataset_type['skeleton'], ann_file=ann_file, split='train', pipeline=train_pipeline['skeleton'])),
     },
     val={
-        "rgb":dict(type=dataset_type['rgb'], ann_file=ann_file['rgb'], split='test', data_prefix='../data/ucf101', pipeline=val_pipeline['rgb'], start_index=1),
-        "skeleton":dict(type=dataset_type['skeleton'], ann_file=ann_file['skeleton'], split='test', pipeline=val_pipeline['skeleton']),
+        "rgb":dict(type=dataset_type['rgb'], ann_file=ann_file, split='test', data_prefix='../data/ucf101/rawframes', pipeline=val_pipeline['rgb'], start_index=1),
+        "skeleton":dict(type=dataset_type['skeleton'], ann_file=ann_file, split='test', pipeline=val_pipeline['skeleton']),
     },
     test={
-        "rgb":dict(type=dataset_type['rgb'], ann_file=ann_file['rgb'], split='test', data_prefix='../data/ucf101', pipeline=test_pipeline['rgb'], start_index=1),
-        "skeleton":dict(type=dataset_type['skeleton'], ann_file=ann_file['skeleton'], split='test', pipeline=test_pipeline['rgb'])
+        "rgb":dict(type=dataset_type['rgb'], ann_file=ann_file, split='test', data_prefix='../data/ucf101/rawframes', pipeline=test_pipeline['rgb'], start_index=1),
+        "skeleton":dict(type=dataset_type['skeleton'], ann_file=ann_file, split='test', pipeline=test_pipeline['rgb'])
     }
 )
 # optimizer

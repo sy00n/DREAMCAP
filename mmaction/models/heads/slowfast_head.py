@@ -48,11 +48,13 @@ class SlowFastHead(BaseHead):
             fc_lst = [nn.Linear(in_channels, hidden_size[0])]
             for i in range(len(hidden_size)-1):
                 fc_lst.append(nn.Linear(hidden_size[i], hidden_size[i+1]))
+                fc_lst.append(nn.ReLU())
+                fc_lst.append(nn.Dropout(dropout_ratio))
             self.fcs = nn.Sequential(fc_lst)
             self.fc_cls = nn.Linear(hidden_size[-1], num_classes)
         elif self.num_layers == 2:
             if isinstance(hidden_size, int):
-                self.fcs = nn.Linear(in_channels, hidden_size)
+                self.fcs = nn.Sequential([nn.Linear(in_channels, hidden_size), nn.ReLU(), nn.Dropout(dropout_ratio)])
                 self.fc_cls = nn.Linear(hidden_size, num_classes)
             elif isinstance(hidden_size, list):
                 self.fcs = nn.Linear(in_channels, hidden_size[0])

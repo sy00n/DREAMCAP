@@ -25,6 +25,8 @@ class SlowFastHead(BaseHead):
     def __init__(self,
                  num_classes,
                  in_channels,
+                 num_layers = 1,
+                 hidden_size = None,
                  loss_cls=dict(type='CrossEntropyLoss'),
                  spatial_type='avg',
                  dropout_ratio=0.8,
@@ -32,6 +34,7 @@ class SlowFastHead(BaseHead):
                  **kwargs):
 
         super().__init__(num_classes, in_channels, loss_cls, **kwargs)
+        self.num_layers = num_layers
         self.spatial_type = spatial_type
         self.dropout_ratio = dropout_ratio
         self.init_std = init_std
@@ -40,7 +43,23 @@ class SlowFastHead(BaseHead):
             self.dropout = nn.Dropout(p=self.dropout_ratio)
         else:
             self.dropout = None
-        self.fc_cls = nn.Linear(in_channels, num_classes)
+        
+        if self.num_layers > 2:
+            fc_lst = [nn.Linear(in_channels, hidden_size[0])]
+            for i in range(len(hidden_size)-1):
+                fc_lst.append(nn.Linear(hidden_size[i], hidden_size[i+1]))
+            self.fcs = nn.Sequential(fc_lst)
+            self.fc_cls = nn.Linear(hidden_size[-1], num_classes)
+        elif self.num_layers == 2:
+            if isinstance(hidden_size, int):
+                self.fcs = nn.Linear(in_channels, hidden_size)
+                self.fc_cls = nn.Linear(hidden_size, num_classes)
+            elif isinstance(hidden_size, list):
+                self.fcs = nn.Linear(in_channels, hidden_size[0])
+                self.fc_cls = nn.Linear(hidden_size[0], num_classes)
+        else:
+            self.fc_cls = nn.Linear(in_channels, num_classes)
+            
 
         if self.spatial_type == 'avg':
             self.avg_pool = nn.AdaptiveAvgPool3d((1, 1, 1))
@@ -73,6 +92,10 @@ class SlowFastHead(BaseHead):
 
         # [N x C]
         x = x.view(x.size(0), -1)
+        
+        if self.num_layers > 1:
+            x = self.fcs(x)
+        
         # [N x num_classes]
         cls_score = self.fc_cls(x)
 

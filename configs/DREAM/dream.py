@@ -9,7 +9,7 @@ evidence_loss = dict(type='EvidenceLoss',
                       with_avuloss=True,
                       annealing_method='exp')
 train_cfg = None
-test_cfg = dict(average_clips='evidence', evidence_type='exp')
+test_cfg = dict(average_clips='evidence', evidence_type='exp') 
 model = dict(
     type='DREAMRecognizer3D',
     backbone=dict(
@@ -47,6 +47,8 @@ model = dict(
         loss_cls=evidence_loss,
         in_channels=2304,  # 2048+256
         num_classes=101,
+        num_layers=3,
+        hidden_size=[1024],
         spatial_type='avg',
         dropout_ratio=0.5),
     debias_head=dict(

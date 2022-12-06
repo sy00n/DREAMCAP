@@ -9,7 +9,7 @@ evidence_loss = dict(type='EvidenceLoss',
                       with_avuloss=True,
                       annealing_method='exp')
 train_cfg = None
-test_cfg = dict(average_clips='evidence', evidence_type='exp') 
+test_cfg = dict(average_clips='evidence', evidence_type='exp')
 model = dict(
     type='DREAMRecognizer3D',
     backbone=dict(
@@ -47,8 +47,6 @@ model = dict(
         loss_cls=evidence_loss,
         in_channels=2304,  # 2048+256
         num_classes=101,
-        num_layers=3,
-        hidden_size=[1024],
         spatial_type='avg',
         dropout_ratio=0.5),
     debias_head=dict(
@@ -62,7 +60,7 @@ model = dict(
 
 dataset_type = {'rgb':'VideoDataset',
                 'skeleton':'PoseDataset'}
-ann_file = '../data/ucf101/ucf101_dual.pkl'
+ann_file = '../dataset/ucf101_dual.pkl'
 left_kp = [1, 3, 5, 7, 9, 11, 13, 15]
 right_kp = [2, 4, 6, 8, 10, 12, 14, 16]
 train_pipeline = {
@@ -157,18 +155,18 @@ data = dict(
         "rgb":dict(
             type='RepeatDataset',
             times=10,
-            dataset=dict(type=dataset_type['rgb'], ann_file=ann_file, split='train', data_prefix='../data/ucf101/rawframes', pipeline=train_pipeline['rgb'], start_index=1)),
+            dataset=dict(type=dataset_type['rgb'], ann_file=ann_file, split='train', data_prefix='../data/rawframes', pipeline=train_pipeline['rgb'], start_index=1)),
         "skeleton":dict(
             type='RepeatDataset',
             times=10,
             dataset=dict(type=dataset_type['skeleton'], ann_file=ann_file, split='train', pipeline=train_pipeline['skeleton'])),
     },
     val={
-        "rgb":dict(type=dataset_type['rgb'], ann_file=ann_file, split='test', data_prefix='../data/ucf101/rawframes', pipeline=val_pipeline['rgb'], start_index=1),
+        "rgb":dict(type=dataset_type['rgb'], ann_file=ann_file, split='test', data_prefix='../data/rawframes', pipeline=val_pipeline['rgb'], start_index=1),
         "skeleton":dict(type=dataset_type['skeleton'], ann_file=ann_file, split='test', pipeline=val_pipeline['skeleton']),
     },
     test={
-        "rgb":dict(type=dataset_type['rgb'], ann_file=ann_file, split='test', data_prefix='../data/ucf101/rawframes', pipeline=test_pipeline['rgb'], start_index=1),
+        "rgb":dict(type=dataset_type['rgb'], ann_file=ann_file, split='test', data_prefix='../data/rawframes', pipeline=test_pipeline['rgb'], start_index=1),
         "skeleton":dict(type=dataset_type['skeleton'], ann_file=ann_file, split='test', pipeline=test_pipeline['rgb'])
     }
 )
@@ -183,7 +181,7 @@ lr_config = dict(
     warmup_by_epoch=True,
     warmup_iters=5)
 total_epochs = 50
-checkpoint_config = dict(interval=10)
+checkpoint_config = dict(interval=10, by_epoch=False)
 workflow = [('train', 1)]
 evaluation = dict(
     interval=5, metrics=['top_k_accuracy', 'mean_class_accuracy'])

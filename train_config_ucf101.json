@@ -1,6 +1,6 @@
 {
-    "config": "configs/DREAM/dream.py",
-    "work_dir": "output/model",
+    "config": "configs/DREAM/dream_ucf101.py",
+    "work_dir": "output/model_ucf101",
     "resume_from": null,
     "validate": true,
     "gpus": 1,

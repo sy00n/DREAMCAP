@@ -1,0 +1,37 @@
+=================
+| Mimetics v1.0 |
+=================
+
+The Mimetics dataset (version 1.0) contains video clips from YouTube of mimed actions for a subset of classes from the Kinetics400 dataset. 
+It allows to evaluate on out-of-context human actions methods that have been trained on Kinetics.
+
+
+
+Citation
+--------
+
+When using or referring to this dataset, please cite our paper.
+
+@article{mimetics,
+  author = {Weinzaepfel, Philippe and Rogez, Gr\’egory},
+  title = {Mimetics: Towards Understanding Human Actions Out of Context},
+  journal = {arXiv},
+  title = {2019}
+}
+
+
+
+News
+----
+
+December 2019: release v1.0
+
+
+
+Content
+-------
+
+* mimetics_v1.0.csv is a csv file that contains the URLs and timestamps of the YouTube clips, following the Kinetics format. You can thus use similar script such as https://github.com/activitynet/ActivityNet/tree/master/Crawler/Kinetics to download and trim the videos.
+* mimetics_v1.0_objectsceneannot.txt contains annotation per video (one video per line) about the presence of a relevant object, of a relevant scene, as well as a binary label whether the actor is a mime artist. The object is a binary label that indicates whether a relevant object is present or not, and similarly for the scene label.
+* mimetics_v1.0_clsannot.txt contains annotation about the size of the manipulated objects as well as the relevance of a particular scene for each class. Object sizes are either "no", "small", "medium" or "large". In the paper, we report either for no/small object and medium/large. Scene label is either "yes" or "no".
+

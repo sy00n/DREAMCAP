@@ -60,7 +60,7 @@ model = dict(
 
 dataset_type = {'rgb':'VideoDataset',
                 'skeleton':'PoseDataset'}
-ann_file = '../dataset/mimetics_dual.pkl'
+ann_file = '../data/mimetics/mimetics_dual.pkl'
 left_kp = [1, 3, 5, 7, 9, 11, 13, 15]
 right_kp = [2, 4, 6, 8, 10, 12, 14, 16]
 train_pipeline = {

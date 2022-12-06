@@ -60,7 +60,7 @@ model = dict(
 
 dataset_type = {'rgb':'VideoDataset',
                 'skeleton':'PoseDataset'}
-ann_file = '../dataset/ucf101_dual.pkl'
+ann_file = '../data/ucf101/ucf101_dual.pkl'
 left_kp = [1, 3, 5, 7, 9, 11, 13, 15]
 right_kp = [2, 4, 6, 8, 10, 12, 14, 16]
 train_pipeline = {
@@ -155,18 +155,18 @@ data = dict(
         "rgb":dict(
             type='RepeatDataset',
             times=10,
-            dataset=dict(type=dataset_type['rgb'], ann_file=ann_file, split='train', data_prefix='../data/rawframes', pipeline=train_pipeline['rgb'], start_index=1)),
+            dataset=dict(type=dataset_type['rgb'], ann_file=ann_file, split='train', data_prefix='../data/ucf101/rawframes', pipeline=train_pipeline['rgb'], start_index=1)),
         "skeleton":dict(
             type='RepeatDataset',
             times=10,
             dataset=dict(type=dataset_type['skeleton'], ann_file=ann_file, split='train', pipeline=train_pipeline['skeleton'])),
     },
     val={
-        "rgb":dict(type=dataset_type['rgb'], ann_file=ann_file, split='test', data_prefix='../data/rawframes', pipeline=val_pipeline['rgb'], start_index=1),
+        "rgb":dict(type=dataset_type['rgb'], ann_file=ann_file, split='test', data_prefix='../data/ucf101/rawframes', pipeline=val_pipeline['rgb'], start_index=1),
         "skeleton":dict(type=dataset_type['skeleton'], ann_file=ann_file, split='test', pipeline=val_pipeline['skeleton']),
     },
     test={
-        "rgb":dict(type=dataset_type['rgb'], ann_file=ann_file, split='test', data_prefix='../data/rawframes', pipeline=test_pipeline['rgb'], start_index=1),
+        "rgb":dict(type=dataset_type['rgb'], ann_file=ann_file, split='test', data_prefix='../data/ucf101/rawframes', pipeline=test_pipeline['rgb'], start_index=1),
         "skeleton":dict(type=dataset_type['skeleton'], ann_file=ann_file, split='test', pipeline=test_pipeline['rgb'])
     }
 )

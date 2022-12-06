@@ -148,7 +148,7 @@ test_pipeline = {
 }
 dual_modality = True
 data = dict(
-    videos_per_gpu=16,
+    videos_per_gpu=8,
     workers_per_gpu=0,
     test_dataloader=dict(videos_per_gpu=1),
     train={
@@ -179,7 +179,7 @@ lr_config = dict(
     min_lr=0,
     warmup='linear',
     warmup_by_epoch=True,
-    warmup_iters=5)
+    warmup_iters=34)
 total_epochs = 50
 checkpoint_config = dict(interval=10, by_epoch=False)
 workflow = [('train', 1)]

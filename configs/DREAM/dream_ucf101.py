@@ -177,7 +177,7 @@ optimizer_config = dict(grad_clip=dict(max_norm=40, norm_type=2))
 lr_config = dict(
     policy='CosineAnnealing',
     min_lr=0,
-    warmup='linear',
+    warmup=None,
     warmup_by_epoch=True,
     warmup_iters=34)
 total_epochs = 50

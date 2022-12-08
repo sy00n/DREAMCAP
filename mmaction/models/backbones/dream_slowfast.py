@@ -426,8 +426,6 @@ class DREAM3dSlowFast(nn.Module):
         if rgb_pathway['lateral']:
             rgb_pathway['speed_ratio'] = speed_ratio
             rgb_pathway['channel_ratio'] = channel_ratio
-            ske_pathway['speed_ratio'] = ske_pathway
-            ske_pathway['channel_ratio'] = ske_pathway
 
         self.rgb_path = build_pathway(rgb_pathway)
         self.ske_path = build_pathway(ske_pathway)
@@ -475,7 +473,7 @@ class DREAM3dSlowFast(nn.Module):
 
         if self.rgb_path.lateral:
             #x_ske_lateral = self.rgb_path.conv1_lateral(x_ske)
-            x_rgb = torch.cat((x_rgb, x_ske_lateral), dim=1)
+            x_rgb = torch.cat((x_rgb, x_ske), dim=1)
 
         for i, layer_name in enumerate(self.rgb_path.res_layers):
             res_layer = getattr(self.rgb_path, layer_name)
@@ -488,7 +486,7 @@ class DREAM3dSlowFast(nn.Module):
                 #lateral_name = self.rgb_path.lateral_connections[i]
                 #conv_lateral = getattr(self.rgb_path, lateral_name)
                 #x_ske_lateral = conv_lateral(x_ske)
-                x_rgb = torch.cat((x_rgb, x_ske_lateral), dim=1)
+                x_rgb = torch.cat((x_rgb, x_ske), dim=1)
 
         out = (x_rgb, x_ske)
 

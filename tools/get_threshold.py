@@ -132,7 +132,6 @@ def run_inference():
 
     # We use training data to obtain the threshold
     cfg.data.test.ann_file = args.train_data
-    cfg.data.test.data_prefix = os.path.join(os.path.dirname(args.train_data), 'videos')
     # build the dataloader
     dataset = build_dataset(cfg.data.test, dict(test_mode=True))
     dataloader_setting = dict(

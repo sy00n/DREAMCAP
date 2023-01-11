@@ -46,7 +46,15 @@ model = dict(
         in_channels=320,  # RGB output channel + SKE output channel
         num_classes=101,
         spatial_type='avg',
-        dropout_ratio=0.5))
+        dropout_ratio=0.5),
+    debias_head=dict(
+        type='DebiasHead',
+        loss_cls=evidence_loss,  # actually not used!
+        loss_factor=0.1,
+        num_classes=101,
+        in_channels=256,  # only RGB features are debiased
+        dropout_ratio=0.5,
+        init_std=0.01))
 
 dataset_type = {'rgb':'VideoDataset',
                 'skeleton':'PoseDataset'}

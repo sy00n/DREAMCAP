@@ -1,6 +1,6 @@
 from .backbones import (C3D, X3D, ResNet, ResNet2Plus1d, ResNet3d, ResNet3dCSN,
                         ResNet3dSlowFast, ResNet3dSlowOnly, ResNetAudio,
-                        ResNetTIN, ResNetTSM, DREAM3dSlowFast)
+                        ResNetTIN, ResNetTSM, DREAM)
 from .builder import (build_backbone, build_head, build_localizer, build_loss,
                       build_model, build_neck, build_recognizer)
 from .common import Conv2plus1d, ConvAudio
@@ -18,7 +18,7 @@ from .registry import BACKBONES, HEADS, LOCALIZERS, LOSSES, RECOGNIZERS
 __all__ = [
     'BACKBONES', 'HEADS', 'RECOGNIZERS', 'build_recognizer', 'build_head',
     'build_backbone', 'recognizer2d', 'recognizer3d', 'C3D', 'ResNet',
-    'ResNet3d', 'ResNet2Plus1d', 'DREAM3dSlowFast', 'I3DHead', 'TSNHead', 'TSMHead', 'BaseHead',
+    'ResNet3d', 'ResNet2Plus1d', 'DREAM', 'I3DHead', 'TSNHead', 'TSMHead', 'BaseHead',
     'BaseRecognizer', 'LOSSES', 'CrossEntropyLoss', 'NLLLoss', 'HVULoss',
     'ResNetTSM', 'ResNet3dSlowFast', 'SlowFastHead', 'Conv2plus1d',
     'ResNet3dSlowOnly', 'BCELossWithLogits', 'LOCALIZERS', 'build_localizer',

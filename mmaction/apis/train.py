@@ -229,14 +229,31 @@ def train_model(model,
         runner.resume(cfg.resume_from)
     elif cfg.load_from:
         if isinstance(cfg.load_from, dict):
+            dct = {}
+            lst = []
             for description, url in cfg.load_from.items():
                 x = load_url_dist(url)
-                dct = {}
                 for key, value in x["state_dict"].items():
                     key_ = key.split(".")
                     key_.insert(1, description)
-                    dct.update({".".join(key_):value})
-                runner.load_checkpoint(dct, strict=False)
+                    key_ = ".".join(key_)
+                    dct.update({key_:value})
+                    if description=="rgb_path" and (".0.conv1.conv.weight" in key_ \
+                        or "downsample.conv.weight" in key_):
+                        lst.append(key_)
+            for key_ in lst:
+                key = key_.replace("rgb", "ske")
+                shape_ = list(dct[key_].shape)
+                if dct.get(key)!=None:
+                    shape_[1] = dct[key].shape[1]
+                else:
+                    shape_[1] = last.shape[1]*2
+                w = torch.empty(*shape_)
+                w_ske = torch.nn.init.kaiming_normal_(w, nonlinearity='relu')
+                dct[key_] = torch.cat([dct[key_], w_ske], axis=1)
+                if dct.get(key)!=None:
+                    last = dct[key].clone()
+            runner.load_checkpoint(dct, strict=False)
         else:
             runner.load_checkpoint(cfg.load_from)
     runner_kwargs = dict()

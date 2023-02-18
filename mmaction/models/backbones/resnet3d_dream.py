@@ -35,7 +35,8 @@ class ResNet3dPathway(ResNet3d):
                  **kwargs):
         self.lateral = lateral
         self.fusion_kernel = fusion_kernel
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, spatial_strides=spatial_strides, temporal_strides=temporal_strides, 
+                        dilations=dilations, inflate=inflate, with_cp=with_cp, **kwargs)
         if self.lateral:
             self.lateral_channels = lateral_channels
         else:

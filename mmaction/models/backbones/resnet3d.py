@@ -442,7 +442,10 @@ class ResNet3d(nn.Module):
         self.zero_init_residual = zero_init_residual
 
         self.block, stage_blocks = self.arch_settings[depth]
-        self.stage_blocks = stage_blocks[:num_stages]
+        if kwargs.get("stage_blocks"):
+            self.stage_blocks = kwargs.get("stage_blocks")
+        else:
+            self.stage_blocks = stage_blocks[:num_stages]
         self.inplanes = self.base_channels
 
         self.non_local_cfg = non_local_cfg
@@ -471,8 +474,7 @@ class ResNet3d(nn.Module):
                 non_local_cfg=self.non_local_cfg,
                 inflate=self.stage_inflations[i],
                 inflate_style=self.inflate_style,
-                with_cp=with_cp,
-                **kwargs)
+                with_cp=with_cp)
             self.inplanes = planes * self.block.expansion
             layer_name = f'layer{i + 1}'
             self.add_module(layer_name, res_layer)

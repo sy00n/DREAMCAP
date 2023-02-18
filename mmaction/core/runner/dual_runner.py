@@ -9,6 +9,7 @@ import torch
 import mmcv
 from mmcv.runner import EpochBasedRunner, Hook
 from mmcv.runner.utils import get_host_info
+from mmcv.runner.checkpoint import _load_checkpoint, load_state_dict
 
 def cycle(iterable):
     iterator = iter(iterable)
@@ -17,6 +18,46 @@ def cycle(iterable):
             yield next(iterator)
         except StopIteration:
             iterator = iter(iterable)
+
+def load_checkpoint(model,
+                    filename,
+                    map_location=None,
+                    strict=False,
+                    logger=None):
+    """Load checkpoint from a file or URI.
+
+    Args:
+        model (Module): Module to load checkpoint.
+        filename (str): Accept local filepath, URL, ``torchvision://xxx``,
+            ``open-mmlab://xxx``. Please refer to ``docs/model_zoo.md`` for
+            details.
+        map_location (str): Same as :func:`torch.load`.
+        strict (bool): Whether to allow different params for the model and
+            checkpoint.
+        logger (:mod:`logging.Logger` or None): The logger for error message.
+
+    Returns:
+        dict or OrderedDict: The loaded checkpoint.
+    """
+    if isinstance(filename, dict):
+        checkpoint = filename
+    else:
+        checkpoint = _load_checkpoint(filename, map_location)
+    # OrderedDict is a subclass of dict
+    if not isinstance(checkpoint, dict):
+        raise RuntimeError(
+            f'No state_dict found in checkpoint file {filename}')
+    # get state_dict from checkpoint
+    if 'state_dict' in checkpoint:
+        state_dict = checkpoint['state_dict']
+    else:
+        state_dict = checkpoint
+    # strip prefix of state_dict
+    if list(state_dict.keys())[0].startswith('module.'):
+        state_dict = {k[7:]: v for k, v in checkpoint['state_dict'].items()}
+    # load state_dict
+    load_state_dict(model, state_dict, strict, logger)
+    return checkpoint
 
 class DualEpochBasedRunner(EpochBasedRunner):
     def run_iter(self, rgb_data_batch, ske_data_batch, train_mode, **kwargs):
@@ -68,6 +109,10 @@ class DualEpochBasedRunner(EpochBasedRunner):
             self.call_hook('after_val_iter')
 
         self.call_hook('after_val_epoch')
+
+    def load_checkpoint(self, filename, map_location='cpu', strict=False):
+        return load_checkpoint(self.model, filename, map_location, strict,
+                               self.logger)
 
 class OmniSourceDistSamplerSeedHook(Hook):
 
@@ -157,6 +202,10 @@ class DualOmniSourceRunner(DualEpochBasedRunner):
     def val(self, data_loader, **kwargs):
         raise NotImplementedError
 
+    def load_checkpoint(self, filename, map_location='cpu', strict=False):
+        return load_checkpoint(self.model, filename, map_location, strict,
+                               self.logger)
+
 class DualAnnealingRunner(DualEpochBasedRunner):
     def run_iter(self, rgb_data_batch, ske_data_batch, train_mode, **kwargs):
         
@@ -179,3 +228,7 @@ class DualAnnealingRunner(DualEpochBasedRunner):
         if 'log_vars' in outputs:
             self.log_buffer.update(outputs['log_vars'], outputs['num_samples'])
         self.outputs = outputs
+
+    def load_checkpoint(self, filename, map_location='cpu', strict=False):
+        return load_checkpoint(self.model, filename, map_location, strict,
+                               self.logger)

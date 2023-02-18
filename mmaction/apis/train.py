@@ -228,7 +228,7 @@ def train_model(model,
     if cfg.resume_from:
         runner.resume(cfg.resume_from)
     elif cfg.load_from:
-        if hasattr(cfg.load_from, dict):
+        if isinstance(cfg.load_from, dict):
             for description, url in cfg.load_from.items():
                 x = load_url_dist(url)
                 dct = {}

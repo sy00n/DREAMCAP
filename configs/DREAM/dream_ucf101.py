@@ -31,10 +31,16 @@ model = dict(
             norm_eval=False),
         ske_pathway=dict(
             type='resnet3d',
-            depth=34,
+            depth=32,
             pretrained=None,
             lateral=False,
             in_channels=17,
+            num_stages=3,
+            out_indices=(2,),
+            stage_blocks=(3,4,6),
+            inflate=(0,1,1),
+            spatial_strides=(2,2,2),
+            temporal_strides=(1,1,2),
             base_channels=8,
             conv1_kernel=(1, 7, 7),
             conv1_stride_t=1,
@@ -187,5 +193,8 @@ dist_params = dict(backend='nccl')
 log_level = 'INFO'
 work_dir = './output/dreamnet'
 resume_from = None
-load_from = None
+load_from = {
+                "rgb_path":"https://download.openmmlab.com/mmaction/recognition/slowonly/slowonly_r50_4x16x1_256e_kinetics400_rgb/slowonly_r50_4x16x1_256e_kinetics400_rgb_20200704-a69556c6.pth",
+                "ske_path":"https://download.openmmlab.com/mmaction/skeleton/posec3d/k400_posec3d-041f49c6.pth"
+             }
 find_unused_parameters = False

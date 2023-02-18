@@ -6,6 +6,7 @@ from mmcv.parallel import MMDataParallel, MMDistributedDataParallel
 from mmcv.runner import (DistSamplerSeedHook, EpochBasedRunner, OptimizerHook,
                          build_optimizer)
 from mmcv.runner.hooks import Fp16OptimizerHook
+from mmcv.runner.checkpoint import load_url_dist
 
 from ..core import (DistEpochEvalHook, EpochEvalHook,
                     OmniSourceDistSamplerSeedHook, OmniSourceRunner, AnnealingRunner,
@@ -227,7 +228,17 @@ def train_model(model,
     if cfg.resume_from:
         runner.resume(cfg.resume_from)
     elif cfg.load_from:
-        runner.load_checkpoint(cfg.load_from)
+        if hasattr(cfg.load_from, dict):
+            for description, url in cfg.load_from.items():
+                x = load_url_dist(url)
+                dct = {}
+                for key, value in x["state_dict"].items():
+                    key_ = key.split(".")
+                    key_.insert(1, description)
+                    dct.update({".".join(key_):value})
+                runner.load_checkpoint(dct, strict=False)
+        else:
+            runner.load_checkpoint(cfg.load_from)
     runner_kwargs = dict()
     if cfg.omnisource:
         runner_kwargs = dict(train_ratio=train_ratio)

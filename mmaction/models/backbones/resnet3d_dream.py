@@ -31,7 +31,9 @@ class ResNet3dPathway(ResNet3d):
                  inflate=(1, 1, 1, 1),
                  with_cp=False,
                  lateral_channels=None,
+                 lateral_num_stages=None,
                  lateral_expansion=1,
+                 lateral_lambda=1,
                  **kwargs):
         self.lateral = lateral
         self.fusion_kernel = fusion_kernel
@@ -39,9 +41,38 @@ class ResNet3dPathway(ResNet3d):
                         dilations=dilations, inflate=inflate, with_cp=with_cp, **kwargs)
         if self.lateral:
             self.lateral_channels = lateral_channels
+            self.lateral_num_stages = lateral_num_stages
+            self.lateral_lambda = lateral_lambda
         else:
             self.lateral_channels = 0
+            self.lateral_num_stages = 0
+            self.lateral_lambda = 0
         self.inplanes = self.base_channels
+
+        if self.lateral:
+            self.conv1_lateral = torch.nn.ConvTranspose3d(
+                self.lateral_channels,
+                self.lateral_channels*self.lateral_lambda,
+                kernel_size=(fusion_kernel, 1, 1),
+                stride=(fusion_kernel, 1, 1)
+            )
+        
+        self.lateral_connections = []
+        for i in range(len(self.stage_blocks)):
+            planes = self.lateral_channels * 2**i
+            self.inplanes_ = planes * self.block.expansion
+
+            if lateral and i != self.num_stages - 1:
+                # no lateral connection needed in final stage
+                lateral_name = f'layer{(i + 1)}_lateral'
+                setattr(
+                    self, lateral_name,
+                    torch.nn.ConvTranspose3d(
+                    self.inplanes_,
+                    self.inplanes_,
+                    kernel_size=(fusion_kernel, 1, 1),
+                    stride=(fusion_kernel, 1, 1)))
+                self.lateral_connections.append(lateral_name)
 
         self.res_layers = []
         for i, num_blocks in enumerate(self.stage_blocks):
@@ -327,17 +358,23 @@ class DREAM(nn.Module):
         x_ske = self.ske_path.maxpool(x_ske)
 
         if self.rgb_path.lateral:
-            x_rgb = torch.cat((x_rgb, x_ske), dim=1)
+            x_ske_lateral = self.rgb_path.conv1_lateral(x_ske)
+            x_rgb = torch.cat((x_rgb, x_ske_lateral), dim=1)
 
         for i, layer_name in enumerate(self.rgb_path.res_layers):
             res_layer = getattr(self.rgb_path, layer_name)
             x_rgb = res_layer(x_rgb)
-            res_layer_ske = getattr(self.ske_path, layer_name)
-            x_ske = res_layer_ske(x_ske)
+            if hasattr(self.ske_path, layer_name):
+                res_layer_ske = getattr(self.ske_path, layer_name)
+                x_ske = res_layer_ske(x_ske)
             if (i != len(self.rgb_path.res_layers) - 1
                     and self.rgb_path.lateral):
-                x_rgb = torch.cat((x_rgb, x_ske), dim=1)
-
+                # No fusion needed in the final stage
+                lateral_name = self.rgb_path.lateral_connections[i]
+                conv_lateral = getattr(self.rgb_path, lateral_name)
+                x_ske_lateral = conv_lateral(x_ske)
+                x_rgb = torch.cat((x_rgb, x_ske_lateral), dim=1)
+        
         out = (x_rgb, x_ske)
 
         return out

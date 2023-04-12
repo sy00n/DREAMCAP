@@ -1,5 +1,5 @@
 # DREAMCAP
-DREAM: Debiasing Representation based Evidential open set Action recognition with Multi-modality
+## DREAM: Debiasing Representation based Evidential open set Action recognition with Multi-modality
 
 ### TRAIN
 

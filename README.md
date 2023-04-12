@@ -1,8 +1,5 @@
 # DREAMCAP
 
-서윤 정하 유진
-![image](https://user-images.githubusercontent.com/67910856/199668641-aa901287-ee98-4b8b-8802-c5a4a14f5d92.png)
-
 ### TRAIN
 
 ```shell
